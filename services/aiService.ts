@@ -55,7 +55,7 @@ export const AI_PROVIDERS: AIProvider[] = [
     requiresApiKey: true,
     baseUrl: 'https://api.cerebras.ai/v1',
     models: [
-      'GPT-OSS-120B',
+      'gpt-oss-120b',
       'Qwen3-235B(Instruct)',
       'Llama-3.3-70B',
       'Llama-4-Maverick',
