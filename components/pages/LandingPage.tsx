@@ -48,13 +48,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
             className="mb-8"
           >
             <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-6 tracking-tight">
-              <span className="bg-gradient-to-r from-slate-900 via-purple-800 to-slate-900 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-slate-900 via-blue-800 to-slate-900 bg-clip-text text-transparent">
                 Elite Code
               </span>{" "}
-              <Highlight className="text-white bg-gradient-to-r from-purple-600 to-violet-600 px-2 sm:px-4 py-1 sm:py-2 rounded-lg">
+              <Highlight className="text-white bg-gradient-to-r from-blue-600 to-cyan-600 px-2 sm:px-4 py-1 sm:py-2 rounded-lg">
                 Review
               </Highlight>{" "}
-              <span className="bg-gradient-to-r from-slate-900 via-purple-800 to-slate-900 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-slate-900 via-blue-800 to-slate-900 bg-clip-text text-transparent">
                 Platform
               </span>
             </h1>
@@ -79,7 +79,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
             <Button 
               size="lg" 
               onClick={onLaunch}
-              className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white border-0 shadow-lg hover:shadow-purple-500/25 transform hover:scale-105 transition-all duration-300 px-8 py-4 text-lg font-semibold"
+              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-0 shadow-lg hover:shadow-blue-500/25 transform hover:scale-105 transition-all duration-300 px-8 py-4 text-lg font-semibold"
             >
               <Brain className="w-5 h-5 mr-2" /> 
               Launch Neural Review
@@ -91,7 +91,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
               rel="noopener noreferrer" 
               variant="outline" 
               size="lg"
-              className="border-purple-500 text-purple-600 hover:bg-purple-50 hover:border-purple-600 transition-all duration-300 px-8 py-4 text-lg font-semibold"
+              className="border-blue-500 text-blue-600 hover:bg-blue-50 hover:border-blue-600 transition-all duration-300 px-8 py-4 text-lg font-semibold"
             >
               <Github className="w-5 h-5 mr-2" /> 
               View on GitHub
@@ -105,9 +105,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
             transition={{ duration: 0.8, delay: 0.8, ease: "easeOut" }} 
             className="max-w-4xl mx-auto group"
           >
-            <div className="relative rounded-xl shadow-2xl shadow-purple-900/20">
-              <div className="absolute inset-0 -z-10 bg-gradient-to-r from-purple-500/20 to-violet-500/20 rounded-xl transition-all duration-500 blur-sm group-hover:blur-md group-hover:from-purple-500/30 group-hover:to-violet-500/30"></div>
-              <div className="bg-slate-900/90 backdrop-blur-lg border border-purple-500/30 rounded-xl p-4 sm:p-6 shadow-2xl">
+            <div className="relative rounded-xl shadow-2xl shadow-blue-900/20">
+              <div className="absolute inset-0 -z-10 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-xl transition-all duration-500 blur-sm group-hover:blur-md group-hover:from-blue-500/30 group-hover:to-cyan-500/30"></div>
+              <div className="bg-slate-900/90 backdrop-blur-lg border border-blue-500/30 rounded-xl p-4 sm:p-6 shadow-2xl">
                 <div className="flex items-center justify-between mb-4 px-2">
                   <div className="flex items-center gap-3">
                     <div className="flex gap-2">
@@ -116,15 +116,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
                       <div className="w-3 h-3 rounded-full bg-green-500"></div>
                     </div>
                     <div className="flex items-center space-x-2 text-sm text-slate-400">
-                      <Zap className="h-4 w-4 text-purple-400" />
+                      <Zap className="h-4 w-4 text-blue-400" />
                       <span className="font-mono">neural-optimizer.ts</span>
                     </div>
                   </div>
-                  <div className="bg-gradient-to-r from-purple-600 to-violet-600 text-white px-3 py-1 rounded-full text-xs font-semibold border border-purple-500/50">
+                  <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-3 py-1 rounded-full text-xs font-semibold border border-blue-500/50">
                     AI Enhanced
                   </div>
                 </div>
-                <div className="text-sm text-left font-mono p-4 bg-slate-800/50 rounded-lg overflow-x-auto min-h-[210px] border border-purple-500/20">
+                <div className="text-sm text-left font-mono p-4 bg-slate-800/50 rounded-lg overflow-x-auto min-h-[210px] border border-blue-500/20">
                   <AnimatePresence>
                     {isTyping ? (
                       <AnimatedText text={codeSnippet} className="text-slate-100" />
@@ -133,7 +133,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
                         <TextGlitch 
                           text="INITIALIZING" 
                           hoverText="NEURAL.AI" 
-                          className="text-lg text-purple-400"
+                          className="text-lg text-blue-400"
                           isSmall={true}
                         />
                       </div>
