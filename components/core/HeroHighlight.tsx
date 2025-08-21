@@ -1,4 +1,4 @@
-
+// components/core/HeroHighlight.tsx
 import React from 'react';
 import { useMotionValue, motion, useMotionTemplate } from 'framer-motion';
 import { cn } from '../../lib/utils';
@@ -31,32 +31,41 @@ export const HeroHighlight: React.FC<HeroHighlightProps> = ({
   return (
     <div
       className={cn(
-        'relative h-full flex items-center bg-white justify-center w-full group',
+        'relative h-full flex items-center justify-center w-full group overflow-hidden',
+        'bg-gradient-to-br from-white via-slate-50/50 to-white',
         containerClassName
       )}
       onMouseMove={handleMouseMove}
     >
-      <div className="absolute inset-0 bg-dot-thick-neutral-300 pointer-events-none" />
+      {/* Base dot pattern */}
+      <div className="absolute inset-0 bg-dot-thick-neutral-300/40 pointer-events-none" />
+      
+      {/* Interactive dot pattern */}
       <motion.div
-        className="pointer-events-none bg-dot-thick-sky-500 absolute inset-0 opacity-0 transition duration-300 group-hover:opacity-100"
+        className="pointer-events-none bg-dot-thick-sky-500/60 absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100"
         style={{
           WebkitMaskImage: useMotionTemplate`
             radial-gradient(
-              200px circle at ${mouseX}px ${mouseY}px,
+              250px circle at ${mouseX}px ${mouseY}px,
               black 0%,
               transparent 100%
             )
           `,
           maskImage: useMotionTemplate`
             radial-gradient(
-              200px circle at ${mouseX}px ${mouseY}px,
+              250px circle at ${mouseX}px ${mouseY}px,
               black 0%,
               transparent 100%
             )
           `,
         }}
       />
-      <div className={cn('relative z-20', className)}>{children}</div>
+      
+      {/* Gradient overlay for better text contrast */}
+      <div className="absolute inset-0 bg-gradient-to-t from-white/20 via-transparent to-white/20 pointer-events-none" />
+      
+      {/* Content */}
+      <div className={cn('relative z-20 w-full', className)}>{children}</div>
     </div>
   );
 };
