@@ -67,6 +67,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         updateAIConfig({ model });
     };
 
+    // ENHANCED FUNCTION WITH AUTO-SWITCH FEEDBACK
     const handleSaveApiKey = async (providerId: string) => {
         const apiKey = newApiKeys[providerId]?.trim();
         if (!apiKey) {
@@ -84,9 +85,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             const result = await saveAPIKey(providerId, apiKey);
             
             if (result.success) {
+                const provider = providers.find(p => p.id === providerId);
                 setSaveMessages(prev => ({
                     ...prev,
-                    [providerId]: { type: 'success', message: 'API key saved and validated successfully!' }
+                    [providerId]: { 
+                        type: 'success', 
+                        message: `✅ API key saved! Switched to ${provider?.name} automatically.` 
+                    }
                 }));
                 
                 // Clear the message after 3 seconds
@@ -298,7 +303,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                                         {availableModels.map((model) => (
                                             <option key={model} value={model}>
                                                 {model}
-                                            </option>
+                            </option>
                                         ))}
                                     </select>
                                 </div>
