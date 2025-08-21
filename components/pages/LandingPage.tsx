@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Zap, Github } from 'lucide-react';
+import { Zap, Github } from 'lucide-react';
 import Button from '../ui/Button';
 import HeroHighlight from '../core/HeroHighlight';
 import Highlight from '../ui/Highlight';
@@ -34,10 +34,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <HeroHighlight containerClassName="min-h-screen">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-24 text-center">
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="flex items-center justify-center gap-2 mb-4">
-            <Brain className="w-6 h-6 text-slate-800" />
-            <span className="text-sm text-slate-500 font-medium">Powered by Gemini</span>
-          </motion.div>
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-6 tracking-tight text-slate-900">
             Elite Code{" "} <Highlight className="text-white">Review Platform</Highlight>
           </motion.h1>
