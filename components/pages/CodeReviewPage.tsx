@@ -73,7 +73,7 @@ const CodeReviewPage: React.FC<CodeReviewPageProps> = ({ onBack }) => {
                                     <textarea
                                         value={code}
                                         onChange={(e) => setCode(e.target.value)}
-                                        className="flex-grow bg-slate-900 text-slate-100 font-mono text-sm p-4 rounded-md resize-none border border-slate-700 focus:ring-2 focus:ring-sky-500 focus:outline-none min-h-[250px] sm:min-h-[400px] lg:min-h-full"
+                                        className="flex-grow bg-slate-900 text-slate-100 font-mono text-sm p-4 rounded-md resize-none border border-slate-700 focus:ring-2 focus:ring-sky-500 focus:outline-none min-h-[300px] sm:min-h-[400px] lg:min-h-full"
                                         placeholder="Paste your code here..."
                                         aria-label="Code input"
                                     />
@@ -85,7 +85,7 @@ const CodeReviewPage: React.FC<CodeReviewPageProps> = ({ onBack }) => {
                                 </motion.div>
 
                                 {/* Analysis Report Section */}
-                                <motion.div initial={{opacity: 0, x: 20}} animate={{opacity: 1, x: 0}} transition={{delay: 0.2}} className="bg-white/50 backdrop-blur-sm border border-slate-200 rounded-xl shadow-lg p-4 sm:p-6 flex flex-col min-h-[350px] sm:min-h-[550px] lg:min-h-full">
+                                <motion.div initial={{opacity: 0, x: 20}} animate={{opacity: 1, x: 0}} transition={{delay: 0.2}} className="bg-white/50 backdrop-blur-sm border border-slate-200 rounded-xl shadow-lg p-4 sm:p-6 flex flex-col min-h-[400px] sm:min-h-[550px] lg:min-h-full">
                                     <h2 className="text-lg sm:text-xl font-bold mb-4 text-slate-800">Analysis Report</h2>
                                     <div className="bg-slate-50 rounded-md p-4 flex-grow border border-slate-300 overflow-y-auto relative">
                                         <AnimatePresence>
