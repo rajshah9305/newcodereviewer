@@ -1,120 +1,142 @@
-"use client"
-
-import type React from "react"
-import { useEffect, useRef, useState } from "react"
+import type React from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 interface ShaderBackgroundProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 // Simple mesh gradient implementation without external dependencies
 const MeshGradient: React.FC<{
-  className?: string
-  colors: string[]
-  speed?: number
-  wireframe?: boolean
-  backgroundColor?: string
+  className?: string;
+  colors: string[];
+  speed?: number;
+  wireframe?: boolean;
+  backgroundColor?: string;
 }> = ({ className, colors, speed = 0.3, wireframe = false, backgroundColor = "#000000" }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const animationRef = useRef<number>()
-  const timeRef = useRef(0)
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number>();
+  const timeRef = useRef(0);
+
+  const animate = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    timeRef.current += speed;
+    
+    // Clear canvas with background color
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Create animated gradient mesh - Fix for single color array
+    if (colors.length > 0) {
+      const centerX = canvas.width / 2 + Math.sin(timeRef.current * 0.01) * 200;
+      const centerY = canvas.height / 2 + Math.cos(timeRef.current * 0.01) * 200;
+      const radius = Math.max(canvas.width, canvas.height);
+      
+      const gradient = ctx.createRadialGradient(centerX, centerY, 0, canvas.width / 2, canvas.height / 2, radius);
+      
+      colors.forEach((color, index) => {
+        // Fix division by zero when colors.length === 1
+        const baseOffset = colors.length === 1 ? 0 : index / (colors.length - 1);
+        const animatedOffset = baseOffset + Math.sin(timeRef.current * 0.005 + index) * 0.1;
+        const clampedOffset = Math.max(0, Math.min(1, animatedOffset));
+        
+        gradient.addColorStop(clampedOffset, color);
+      });
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Wireframe effect with better responsive design
+    if (wireframe && colors.length > 1) {
+      ctx.strokeStyle = colors[1] || colors[0] || "#ffffff";
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.3;
+      
+      // Dynamic grid based on canvas size
+      const gridSize = Math.max(canvas.width / 20, 50);
+      const lineCount = Math.floor(canvas.width / gridSize);
+      
+      for (let i = 0; i <= lineCount; i++) {
+        const x = (canvas.width / lineCount) * i + Math.sin(timeRef.current * 0.01 + i) * 30;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      
+      ctx.globalAlpha = 1;
+    }
+
+    animationRef.current = requestAnimationFrame(animate);
+  }, [colors, speed, wireframe, backgroundColor]);
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
     const resizeCanvas = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-    }
-
-    resizeCanvas()
-    window.addEventListener("resize", resizeCanvas)
-
-    const animate = () => {
-      timeRef.current += speed
-
-      ctx.fillStyle = backgroundColor
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-      // Create animated gradient mesh
-      const gradient = ctx.createRadialGradient(
-        canvas.width / 2 + Math.sin(timeRef.current * 0.01) * 200,
-        canvas.height / 2 + Math.cos(timeRef.current * 0.01) * 200,
-        0,
-        canvas.width / 2,
-        canvas.height / 2,
-        Math.max(canvas.width, canvas.height),
-      )
-
-      colors.forEach((color, index) => {
-        const offset = index / (colors.length - 1) + Math.sin(timeRef.current * 0.005 + index) * 0.1
-        gradient.addColorStop(Math.max(0, Math.min(1, offset)), color)
-      })
-
-      ctx.fillStyle = gradient
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-      if (wireframe) {
-        ctx.strokeStyle = colors[1] || "#ffffff"
-        ctx.lineWidth = 1
-        ctx.globalAlpha = 0.3
-
-        for (let i = 0; i < 10; i++) {
-          ctx.beginPath()
-          ctx.moveTo((canvas.width / 10) * i + Math.sin(timeRef.current * 0.01 + i) * 50, 0)
-          ctx.lineTo((canvas.width / 10) * i + Math.sin(timeRef.current * 0.01 + i) * 50, canvas.height)
-          ctx.stroke()
-        }
-
-        ctx.globalAlpha = 1
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+      
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.scale(dpr, dpr);
       }
+    };
 
-      animationRef.current = requestAnimationFrame(animate)
-    }
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
 
-    animate()
+    // Start animation
+    animationRef.current = requestAnimationFrame(animate);
 
     return () => {
-      window.removeEventListener("resize", resizeCanvas)
+      window.removeEventListener("resize", resizeCanvas);
       if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
+        cancelAnimationFrame(animationRef.current);
       }
-    }
-  }, [colors, speed, wireframe, backgroundColor])
+    };
+  }, [animate]);
 
-  return <canvas ref={canvasRef} className={className} />
-}
+  return <canvas ref={canvasRef} className={className} style={{ width: '100%', height: '100%' }} />;
+};
 
 const ShaderBackground: React.FC<ShaderBackgroundProps> = ({ children }) => {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [isActive, setIsActive] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isActive, setIsActive] = useState(false);
 
   useEffect(() => {
-    const handleMouseEnter = () => setIsActive(true)
-    const handleMouseLeave = () => setIsActive(false)
-
-    const container = containerRef.current
+    const handleMouseEnter = () => setIsActive(true);
+    const handleMouseLeave = () => setIsActive(false);
+    
+    const container = containerRef.current;
     if (container) {
-      container.addEventListener("mouseenter", handleMouseEnter)
-      container.addEventListener("mouseleave", handleMouseLeave)
+      container.addEventListener("mouseenter", handleMouseEnter);
+      container.addEventListener("mouseleave", handleMouseLeave);
     }
 
     return () => {
       if (container) {
-        container.removeEventListener("mouseenter", handleMouseEnter)
-        container.removeEventListener("mouseleave", handleMouseLeave)
+        container.removeEventListener("mouseenter", handleMouseEnter);
+        container.removeEventListener("mouseleave", handleMouseLeave);
       }
-    }
-  }, [])
+    };
+  }, []);
 
   return (
     <div ref={containerRef} className="min-h-screen bg-black relative overflow-hidden">
-      {/* SVG Filters */}
-      <svg className="absolute inset-0 w-0 h-0">
+      {/* SVG Filters with better browser compatibility */}
+      <svg className="absolute inset-0 w-0 h-0" style={{ position: 'absolute', pointerEvents: 'none' }}>
         <defs>
           <filter id="glass-effect" x="-50%" y="-50%" width="200%" height="200%">
             <feTurbulence baseFrequency="0.005" numOctaves="1" result="noise" />
@@ -140,7 +162,7 @@ const ShaderBackground: React.FC<ShaderBackgroundProps> = ({ children }) => {
           </filter>
         </defs>
       </svg>
-
+      
       {/* Background Shaders */}
       <MeshGradient
         className="absolute inset-0 w-full h-full"
@@ -155,10 +177,10 @@ const ShaderBackground: React.FC<ShaderBackgroundProps> = ({ children }) => {
         wireframe={true}
         backgroundColor="transparent"
       />
-
+      
       {children}
     </div>
-  )
-}
+  );
+};
 
-export default ShaderBackground
+export default ShaderBackground;
