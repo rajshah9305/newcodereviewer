@@ -39,14 +39,31 @@ export const AI_PROVIDERS: AIProvider[] = [
     name: 'SambaNova',
     requiresApiKey: true,
     baseUrl: 'https://api.sambanova.ai/v1',
-    models: ['Llama-4-Maverick-17B-128E-Instruct', 'Meta-Llama-3.1-8B-Instruct', 'Meta-Llama-3.1-70B-Instruct']
+    models: [
+      'DeepSeek-R1-0528',
+      'DeepSeek-R1-Distill-Llama-70B',
+      'DeepSeek-V3-0324',
+      'Llama-3.3-Swallow-70B-Instruct-v0.4',
+      'Llama-4-Maverick-17B-128E-Instruct',
+      'Meta-Llama-3.1-8B-Instruct',
+      'Meta-Llama-3.1-70B-Instruct'
+    ]
   },
   {
     id: 'cerebras',
     name: 'Cerebras',
     requiresApiKey: true,
     baseUrl: 'https://api.cerebras.ai/v1',
-    models: ['llama-4-maverick-17b-128e-instruct', 'llama3.1-8b', 'llama3.1-70b']
+    models: [
+      'GPT-OSS-120B',
+      'Qwen3-235B(Instruct)',
+      'Llama-3.3-70B',
+      'Llama-4-Maverick',
+      'Llama-4-scout',
+      'llama-4-maverick-17b-128e-instruct',
+      'llama3.1-8b',
+      'llama3.1-70b'
+    ]
   },
   {
     id: 'openrouter',
@@ -69,6 +86,33 @@ interface AnalysisResponse {
 }
 
 class AIService {
+  // Test API key validity without full analysis
+  async testAPIKey(config: AIConfig): Promise<{ valid: boolean; error?: string }> {
+    try {
+      const testCode = "function test() { return 'hello'; }";
+      const testPrompt = "Briefly analyze this simple function and respond with JSON containing findings array.";
+      
+      // Call the appropriate service with a minimal test
+      await this.analyzeCode(testCode, testPrompt, config);
+      return { valid: true };
+    } catch (error) {
+      console.error(`API key test failed for ${config.provider}:`, error);
+      if (error instanceof Error) {
+        if (error.message.includes('API key') || error.message.includes('401') || error.message.includes('403')) {
+          return { valid: false, error: 'Invalid API key' };
+        }
+        if (error.message.includes('404')) {
+          return { valid: false, error: 'Service not available' };
+        }
+        if (error.message.includes('rate limit')) {
+          return { valid: false, error: 'Rate limit exceeded' };
+        }
+        return { valid: false, error: error.message };
+      }
+      return { valid: false, error: 'Unknown error occurred' };
+    }
+  }
+
   private async callGemini(code: string, systemInstruction: string, config: AIConfig): Promise<string> {
     const ai = new GoogleGenAI({ apiKey: config.apiKey });
     const response = await ai.models.generateContent({
@@ -158,6 +202,21 @@ class AIService {
 
     if (!response.ok) {
       const errorText = await response.text();
+      
+      // Handle specific error cases
+      if (response.status === 401) {
+        throw new Error(`Invalid API key for ${provider?.name || 'service'}`);
+      }
+      if (response.status === 403) {
+        throw new Error(`Access forbidden for ${provider?.name || 'service'}`);
+      }
+      if (response.status === 429) {
+        throw new Error(`Rate limit exceeded for ${provider?.name || 'service'}`);
+      }
+      if (response.status === 404) {
+        throw new Error(`Model ${config.model} not found on ${provider?.name || 'service'}`);
+      }
+      
       throw new Error(`${provider?.name || 'API'} request failed: ${response.status} ${errorText}`);
     }
 
@@ -226,6 +285,18 @@ class AIService {
 
     if (!response.ok) {
       const errorText = await response.text();
+      
+      // Handle specific error cases
+      if (response.status === 401) {
+        throw new Error('Invalid Claude API key');
+      }
+      if (response.status === 403) {
+        throw new Error('Access forbidden for Claude API');
+      }
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded for Claude API');
+      }
+      
       throw new Error(`Claude API request failed: ${response.status} ${errorText}`);
     }
 
@@ -285,13 +356,7 @@ class AIService {
       }
     } catch (error) {
       console.error(`Error calling ${config.provider} API:`, error);
-      if (error instanceof Error) {
-        if (error.message.includes('API key') || error.message.includes('401') || error.message.includes('403')) {
-          throw new Error(`Invalid API key for ${config.provider}. Please check your configuration.`);
-        }
-        throw new Error(`Failed to analyze code with ${config.provider}: ${error.message}`);
-      }
-      throw new Error(`An unknown error occurred while communicating with ${config.provider}.`);
+      throw error; // Re-throw the original error for better error handling
     }
   }
 }
