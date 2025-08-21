@@ -1,7 +1,7 @@
 // components/core/SettingsModal.tsx
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, Save, RotateCcw, Eye, EyeOff, Trash2, Key, Bot, Settings2 } from 'lucide-react';
+import { X, Save, RotateCcw, Eye, EyeOff, Trash2, Key, Bot, Settings2, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
 import Button from '../ui/Button';
 
@@ -21,6 +21,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         apiKeys, 
         saveAPIKey, 
         removeAPIKey,
+        validateAPIKey,
+        isValidatingKey,
+        getAPIKeyStatus,
         isConfigured,
         providers 
     } = useSettings();
@@ -30,6 +33,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     const [isPromptSaved, setIsPromptSaved] = useState(false);
     const [showApiKeys, setShowApiKeys] = useState<{[key: string]: boolean}>({});
     const [newApiKeys, setNewApiKeys] = useState<{[key: string]: string}>({});
+    const [saveMessages, setSaveMessages] = useState<{[key: string]: { type: 'success' | 'error', message: string }}>({});
 
     useEffect(() => {
         if (isOpen) {
@@ -40,6 +44,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 initialKeys[provider.id] = apiKeys[provider.id] || '';
             });
             setNewApiKeys(initialKeys);
+            setSaveMessages({});
         }
     }, [prompt, isOpen, apiKeys, providers]);
 
@@ -62,20 +67,105 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         updateAIConfig({ model });
     };
 
-    const handleSaveApiKey = (providerId: string) => {
+    const handleSaveApiKey = async (providerId: string) => {
         const apiKey = newApiKeys[providerId]?.trim();
-        if (apiKey) {
-            saveAPIKey(providerId, apiKey);
+        if (!apiKey) {
+            setSaveMessages(prev => ({
+                ...prev,
+                [providerId]: { type: 'error', message: 'API key cannot be empty' }
+            }));
+            return;
+        }
+
+        // Clear previous messages
+        setSaveMessages(prev => ({ ...prev, [providerId]: undefined }));
+
+        try {
+            const result = await saveAPIKey(providerId, apiKey);
+            
+            if (result.success) {
+                setSaveMessages(prev => ({
+                    ...prev,
+                    [providerId]: { type: 'success', message: 'API key saved and validated successfully!' }
+                }));
+                
+                // Clear the message after 3 seconds
+                setTimeout(() => {
+                    setSaveMessages(prev => ({ ...prev, [providerId]: undefined }));
+                }, 3000);
+            } else {
+                setSaveMessages(prev => ({
+                    ...prev,
+                    [providerId]: { type: 'error', message: result.error || 'Failed to save API key' }
+                }));
+            }
+        } catch (error) {
+            setSaveMessages(prev => ({
+                ...prev,
+                [providerId]: { type: 'error', message: 'Failed to validate API key' }
+            }));
+        }
+    };
+
+    const handleTestApiKey = async (providerId: string) => {
+        const apiKey = newApiKeys[providerId]?.trim();
+        if (!apiKey) {
+            setSaveMessages(prev => ({
+                ...prev,
+                [providerId]: { type: 'error', message: 'Enter an API key to test' }
+            }));
+            return;
+        }
+
+        setSaveMessages(prev => ({ ...prev, [providerId]: undefined }));
+        
+        try {
+            const result = await validateAPIKey(providerId, apiKey);
+            
+            if (result.valid) {
+                setSaveMessages(prev => ({
+                    ...prev,
+                    [providerId]: { type: 'success', message: 'API key is valid!' }
+                }));
+            } else {
+                setSaveMessages(prev => ({
+                    ...prev,
+                    [providerId]: { type: 'error', message: result.error || 'API key validation failed' }
+                }));
+            }
+        } catch (error) {
+            setSaveMessages(prev => ({
+                ...prev,
+                [providerId]: { type: 'error', message: 'Failed to test API key' }
+            }));
         }
     };
 
     const handleRemoveApiKey = (providerId: string) => {
         removeAPIKey(providerId);
         setNewApiKeys(prev => ({ ...prev, [providerId]: '' }));
+        setSaveMessages(prev => ({ ...prev, [providerId]: undefined }));
     };
 
     const toggleShowApiKey = (providerId: string) => {
         setShowApiKeys(prev => ({ ...prev, [providerId]: !prev[providerId] }));
+    };
+
+    const getStatusIcon = (providerId: string) => {
+        const status = getAPIKeyStatus(providerId);
+        const isValidating = isValidatingKey[providerId];
+        
+        if (isValidating) {
+            return <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />;
+        }
+        
+        if (!status.tested) {
+            return <AlertCircle className="w-4 h-4 text-slate-400" />;
+        }
+        
+        return status.valid 
+            ? <CheckCircle className="w-4 h-4 text-green-500" />
+            : <XCircle className="w-4 h-4 text-red-500" />;
     };
 
     const currentProvider = providers.find(p => p.id === aiConfig.provider);
@@ -94,7 +184,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 30, scale: 0.95 }}
                 transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] border border-slate-200 overflow-hidden"
+                className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] border border-slate-200 overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -151,8 +241,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                                 </div>
                                 <p className="text-sm text-slate-600">
                                     {isConfigured() 
-                                        ? `Using ${currentProvider?.name} with ${aiConfig.model}`
-                                        : 'Please select an AI provider and configure your API key to continue.'
+                                        ? `Ready to use ${currentProvider?.name} with ${aiConfig.model}`
+                                        : 'Please select an AI provider and configure a valid API key to continue.'
                                     }
                                 </p>
                             </div>
@@ -162,29 +252,35 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                                 <label className="block text-sm font-medium text-slate-700 mb-3">
                                     AI Provider
                                 </label>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {providers.map((provider) => (
-                                        <div key={provider.id}>
-                                            <button
-                                                onClick={() => handleProviderChange(provider.id)}
-                                                className={`w-full p-4 border rounded-lg text-left transition-all ${
-                                                    aiConfig.provider === provider.id
-                                                        ? 'border-sky-500 bg-sky-50 ring-2 ring-sky-500/20'
-                                                        : 'border-slate-200 hover:border-slate-300'
-                                                }`}
-                                            >
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <h3 className="font-medium text-slate-900">{provider.name}</h3>
-                                                    {apiKeys[provider.id] && (
-                                                        <div className="w-2 h-2 bg-green-500 rounded-full" />
-                                                    )}
-                                                </div>
-                                                <p className="text-xs text-slate-500">
-                                                    {provider.models.length} models available
-                                                </p>
-                                            </button>
-                                        </div>
-                                    ))}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {providers.map((provider) => {
+                                        const status = getAPIKeyStatus(provider.id);
+                                        const hasValidKey = apiKeys[provider.id] && status.valid;
+                                        
+                                        return (
+                                            <div key={provider.id}>
+                                                <button
+                                                    onClick={() => handleProviderChange(provider.id)}
+                                                    className={`w-full p-4 border rounded-lg text-left transition-all ${
+                                                        aiConfig.provider === provider.id
+                                                            ? 'border-sky-500 bg-sky-50 ring-2 ring-sky-500/20'
+                                                            : 'border-slate-200 hover:border-slate-300'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <h3 className="font-medium text-slate-900">{provider.name}</h3>
+                                                        <div className="flex items-center gap-1">
+                                                            {hasValidKey && <div className="w-2 h-2 bg-green-500 rounded-full" />}
+                                                            {getStatusIcon(provider.id)}
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-xs text-slate-500">
+                                                        {provider.models.length} models available
+                                                    </p>
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
@@ -211,65 +307,119 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                             {/* API Keys Management */}
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-3">
-                                    API Keys
+                                    API Keys Management
                                 </label>
                                 <div className="space-y-4">
-                                    {providers.map((provider) => (
-                                        <div key={provider.id} className="border border-slate-200 rounded-lg p-4">
-                                            <div className="flex items-center justify-between mb-3">
-                                                <h4 className="font-medium text-slate-900">{provider.name}</h4>
-                                                {apiKeys[provider.id] && (
-                                                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                                        Configured
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <div className="flex-1 relative">
-                                                    <input
-                                                        type={showApiKeys[provider.id] ? 'text' : 'password'}
-                                                        value={newApiKeys[provider.id] || ''}
-                                                        onChange={(e) => setNewApiKeys(prev => ({ 
-                                                            ...prev, 
-                                                            [provider.id]: e.target.value 
-                                                        }))}
-                                                        placeholder={`Enter ${provider.name} API key...`}
-                                                        className="w-full p-2 pr-10 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => toggleShowApiKey(provider.id)}
-                                                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                                                    >
-                                                        {showApiKeys[provider.id] ? (
-                                                            <EyeOff className="w-4 h-4" />
-                                                        ) : (
-                                                            <Eye className="w-4 h-4" />
-                                                        )}
-                                                    </button>
+                                    {providers.map((provider) => {
+                                        const status = getAPIKeyStatus(provider.id);
+                                        const isValidating = isValidatingKey[provider.id];
+                                        const saveMessage = saveMessages[provider.id];
+                                        
+                                        return (
+                                            <div key={provider.id} className="border border-slate-200 rounded-lg p-4">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <h4 className="font-medium text-slate-900">{provider.name}</h4>
+                                                        {getStatusIcon(provider.id)}
+                                                    </div>
+                                                    {apiKeys[provider.id] && status.valid && (
+                                                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                                            Configured & Valid
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <Button
-                                                    onClick={() => handleSaveApiKey(provider.id)}
-                                                    disabled={!newApiKeys[provider.id]?.trim()}
-                                                    size="sm"
-                                                    className="px-3"
-                                                >
-                                                    <Key className="w-4 h-4 mr-1" />
-                                                    Save
-                                                </Button>
-                                                {apiKeys[provider.id] && (
-                                                    <Button
-                                                        onClick={() => handleRemoveApiKey(provider.id)}
-                                                        variant="destructive"
-                                                        size="sm"
-                                                        className="px-3"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                )}
+                                                
+                                                <div className="space-y-3">
+                                                    <div className="flex gap-2">
+                                                        <div className="flex-1 relative">
+                                                            <input
+                                                                type={showApiKeys[provider.id] ? 'text' : 'password'}
+                                                                value={newApiKeys[provider.id] || ''}
+                                                                onChange={(e) => setNewApiKeys(prev => ({ 
+                                                                    ...prev, 
+                                                                    [provider.id]: e.target.value 
+                                                                }))}
+                                                                placeholder={`Enter ${provider.name} API key...`}
+                                                                className="w-full p-2 pr-10 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleShowApiKey(provider.id)}
+                                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                                            >
+                                                                {showApiKeys[provider.id] ? (
+                                                                    <EyeOff className="w-4 h-4" />
+                                                                ) : (
+                                                                    <Eye className="w-4 h-4" />
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                        
+                                                        <Button
+                                                            onClick={() => handleTestApiKey(provider.id)}
+                                                            disabled={!newApiKeys[provider.id]?.trim() || isValidating}
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="px-3"
+                                                        >
+                                                            {isValidating ? (
+                                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                            ) : (
+                                                                <AlertCircle className="w-4 h-4 mr-1" />
+                                                            )}
+                                                            Test
+                                                        </Button>
+                                                        
+                                                        <Button
+                                                            onClick={() => handleSaveApiKey(provider.id)}
+                                                            disabled={!newApiKeys[provider.id]?.trim() || isValidating}
+                                                            size="sm"
+                                                            className="px-3"
+                                                        >
+                                                            {isValidating ? (
+                                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                            ) : (
+                                                                <Key className="w-4 h-4 mr-1" />
+                                                            )}
+                                                            Save
+                                                        </Button>
+                                                        
+                                                        {apiKeys[provider.id] && (
+                                                            <Button
+                                                                onClick={() => handleRemoveApiKey(provider.id)}
+                                                                variant="destructive"
+                                                                size="sm"
+                                                                className="px-3"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    {/* Status Messages */}
+                                                    {saveMessage && (
+                                                        <div className={`text-xs p-2 rounded ${
+                                                            saveMessage.type === 'success' 
+                                                                ? 'bg-green-50 text-green-700 border border-green-200'
+                                                                : 'bg-red-50 text-red-700 border border-red-200'
+                                                        }`}>
+                                                            {saveMessage.message}
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {status.tested && !saveMessage && (
+                                                        <div className={`text-xs p-2 rounded ${
+                                                            status.valid 
+                                                                ? 'bg-green-50 text-green-700 border border-green-200'
+                                                                : 'bg-red-50 text-red-700 border border-red-200'
+                                                        }`}>
+                                                            {status.valid ? 'API key is valid and working' : status.error || 'API key validation failed'}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
