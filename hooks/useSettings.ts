@@ -1,4 +1,4 @@
-// hooks/useSettings.ts - Enhanced version
+// hooks/useSettings.ts - Complete Enhanced Version
 import { useState, useEffect, useCallback } from 'react';
 import { AI_PROVIDERS, AIConfig, aiService } from '../services/aiService';
 
@@ -34,47 +34,58 @@ export const useSettings = () => {
   const [apiKeys, setApiKeys] = useState<APIKeys>({});
   const [apiKeyStatus, setApiKeyStatus] = useState<APIKeyStatus>({});
   const [isValidatingKey, setIsValidatingKey] = useState<{[providerId: string]: boolean}>({});
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Load settings from localStorage on mount
   useEffect(() => {
     try {
+      // Load prompt
       const storedPrompt = localStorage.getItem(STORAGE_KEY_PROMPT);
       if (storedPrompt && storedPrompt.trim() !== '') {
         setPrompt(storedPrompt);
       }
 
+      // Load AI config
       const storedConfig = localStorage.getItem(STORAGE_KEY_AI_CONFIG);
       if (storedConfig) {
         const parsedConfig = JSON.parse(storedConfig);
         setAiConfig({ ...DEFAULT_AI_CONFIG, ...parsedConfig });
       }
 
+      // Load API keys
       const storedKeys = localStorage.getItem(STORAGE_KEY_API_KEYS);
       if (storedKeys) {
         const parsedKeys = JSON.parse(storedKeys);
         setApiKeys(parsedKeys);
       }
 
+      // Load API key status
       const storedStatus = localStorage.getItem(STORAGE_KEY_API_KEY_STATUS);
       if (storedStatus) {
         const parsedStatus = JSON.parse(storedStatus);
         setApiKeyStatus(parsedStatus);
       }
+
+      setIsInitialized(true);
     } catch (error) {
       console.error("Failed to load settings from localStorage:", error);
+      setIsInitialized(true);
     }
   }, []);
 
   // Auto-switch to first configured provider on startup
   useEffect(() => {
+    if (!isInitialized) return;
+    
     const configuredProvider = findFirstConfiguredProvider();
     if (configuredProvider && aiConfig.provider !== configuredProvider.id) {
+      console.log('Auto-switching to configured provider:', configuredProvider.name);
       updateAIConfig({ 
         provider: configuredProvider.id,
         model: configuredProvider.models[0]
       });
     }
-  }, [apiKeys, apiKeyStatus]);
+  }, [isInitialized, apiKeys, apiKeyStatus]);
 
   // Update aiConfig with current API key whenever provider changes
   useEffect(() => {
@@ -112,24 +123,29 @@ export const useSettings = () => {
   }, []);
 
   const updateAIConfig = useCallback((updates: Partial<AIConfig>) => {
-    const newConfig = { ...aiConfig, ...updates };
-    
-    if (updates.provider && updates.provider !== aiConfig.provider) {
-      const provider = AI_PROVIDERS.find(p => p.id === updates.provider);
-      if (provider && provider.models.length > 0) {
-        newConfig.model = provider.models[0];
+    setAiConfig(prev => {
+      const newConfig = { ...prev, ...updates };
+      
+      // If provider changed, update the model to the first available model for that provider
+      if (updates.provider && updates.provider !== prev.provider) {
+        const provider = AI_PROVIDERS.find(p => p.id === updates.provider);
+        if (provider && provider.models.length > 0) {
+          newConfig.model = provider.models[0];
+        }
       }
-    }
 
-    newConfig.apiKey = apiKeys[newConfig.provider] || '';
+      // Set API key from stored keys
+      newConfig.apiKey = apiKeys[newConfig.provider] || '';
 
-    try {
-      localStorage.setItem(STORAGE_KEY_AI_CONFIG, JSON.stringify(newConfig));
-      setAiConfig(newConfig);
-    } catch (error) {
-      console.error("Failed to save AI config:", error);
-    }
-  }, [aiConfig, apiKeys]);
+      try {
+        localStorage.setItem(STORAGE_KEY_AI_CONFIG, JSON.stringify(newConfig));
+      } catch (error) {
+        console.error("Failed to save AI config:", error);
+      }
+
+      return newConfig;
+    });
+  }, [apiKeys]);
 
   const validateAPIKey = useCallback(async (providerId: string, apiKey: string): Promise<{valid: boolean; error?: string}> => {
     if (!apiKey.trim()) {
@@ -152,40 +168,57 @@ export const useSettings = () => {
 
       const result = await aiService.testAPIKey(testConfig);
       
-      const newStatus = {
-        ...apiKeyStatus,
-        [providerId]: {
-          valid: result.valid,
-          tested: true,
-          error: result.error,
-          lastTested: Date.now()
+      // Update status immediately
+      setApiKeyStatus(prev => {
+        const newStatus = {
+          ...prev,
+          [providerId]: {
+            valid: result.valid,
+            tested: true,
+            error: result.error,
+            lastTested: Date.now()
+          }
+        };
+        
+        try {
+          localStorage.setItem(STORAGE_KEY_API_KEY_STATUS, JSON.stringify(newStatus));
+        } catch (error) {
+          console.error("Failed to save API key status:", error);
         }
-      };
-      
-      setApiKeyStatus(newStatus);
-      localStorage.setItem(STORAGE_KEY_API_KEY_STATUS, JSON.stringify(newStatus));
+        
+        return newStatus;
+      });
       
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Validation failed';
-      const newStatus = {
-        ...apiKeyStatus,
-        [providerId]: {
-          valid: false,
-          tested: true,
-          error: errorMessage,
-          lastTested: Date.now()
-        }
-      };
       
-      setApiKeyStatus(newStatus);
-      localStorage.setItem(STORAGE_KEY_API_KEY_STATUS, JSON.stringify(newStatus));
+      // Update status with error
+      setApiKeyStatus(prev => {
+        const newStatus = {
+          ...prev,
+          [providerId]: {
+            valid: false,
+            tested: true,
+            error: errorMessage,
+            lastTested: Date.now()
+          }
+        };
+        
+        try {
+          localStorage.setItem(STORAGE_KEY_API_KEY_STATUS, JSON.stringify(newStatus));
+        } catch (error) {
+          console.error("Failed to save API key status:", error);
+        }
+        
+        return newStatus;
+      });
       
       return { valid: false, error: errorMessage };
     } finally {
       setIsValidatingKey(prev => ({ ...prev, [providerId]: false }));
     }
-  }, [apiKeyStatus]);
+  }, []);
 
   const saveAPIKey = useCallback(async (providerId: string, apiKey: string): Promise<{success: boolean; error?: string}> => {
     const trimmedKey = apiKey.trim();
@@ -194,28 +227,38 @@ export const useSettings = () => {
       return { success: false, error: 'API key cannot be empty' };
     }
 
+    // Validate the API key first
     const validation = await validateAPIKey(providerId, trimmedKey);
     
     if (!validation.valid) {
       return { success: false, error: validation.error };
     }
 
-    const newKeys = { ...apiKeys, [providerId]: trimmedKey };
+    // Save the API key if validation passed
     try {
-      localStorage.setItem(STORAGE_KEY_API_KEYS, JSON.stringify(newKeys));
-      setApiKeys(newKeys);
+      // Update API keys state
+      setApiKeys(prev => {
+        const newKeys = { ...prev, [providerId]: trimmedKey };
+        localStorage.setItem(STORAGE_KEY_API_KEYS, JSON.stringify(newKeys));
+        return newKeys;
+      });
       
-      // AUTO-SWITCH: Immediately switch to the newly configured provider
+      // IMMEDIATE AUTO-SWITCH: Switch to the newly configured provider
       const provider = AI_PROVIDERS.find(p => p.id === providerId);
       if (provider) {
-        const updatedConfig: AIConfig = {
-          provider: providerId,
-          model: provider.models[0], // Auto-select first available model
-          apiKey: trimmedKey
-        };
+        console.log('Auto-switching to provider:', provider.name);
         
-        setAiConfig(updatedConfig);
-        localStorage.setItem(STORAGE_KEY_AI_CONFIG, JSON.stringify(updatedConfig));
+        // Update AI config immediately
+        setAiConfig(prev => {
+          const updatedConfig: AIConfig = {
+            provider: providerId,
+            model: provider.models[0], // Auto-select first available model
+            apiKey: trimmedKey
+          };
+          
+          localStorage.setItem(STORAGE_KEY_AI_CONFIG, JSON.stringify(updatedConfig));
+          return updatedConfig;
+        });
       }
       
       return { success: true };
@@ -223,43 +266,55 @@ export const useSettings = () => {
       console.error("Failed to save API key:", error);
       return { success: false, error: 'Failed to save API key' };
     }
-  }, [apiKeys, validateAPIKey]);
+  }, [validateAPIKey]);
 
   const removeAPIKey = useCallback((providerId: string) => {
-    const newKeys = { ...apiKeys };
-    delete newKeys[providerId];
-    
-    const newStatus = { ...apiKeyStatus };
-    delete newStatus[providerId];
-    
-    try {
+    // Update API keys
+    setApiKeys(prev => {
+      const newKeys = { ...prev };
+      delete newKeys[providerId];
       localStorage.setItem(STORAGE_KEY_API_KEYS, JSON.stringify(newKeys));
+      return newKeys;
+    });
+    
+    // Update API key status
+    setApiKeyStatus(prev => {
+      const newStatus = { ...prev };
+      delete newStatus[providerId];
       localStorage.setItem(STORAGE_KEY_API_KEY_STATUS, JSON.stringify(newStatus));
-      setApiKeys(newKeys);
-      setApiKeyStatus(newStatus);
+      return newStatus;
+    });
+    
+    // If removing the current provider's key, switch to another configured provider
+    if (providerId === aiConfig.provider) {
+      const alternativeProvider = AI_PROVIDERS.find(p => {
+        const hasKey = apiKeys[p.id] && p.id !== providerId;
+        const keyStatus = apiKeyStatus[p.id];
+        return hasKey && keyStatus?.valid;
+      });
       
-      // If removing the current provider's key, switch to another configured provider
-      if (providerId === aiConfig.provider) {
-        const alternativeProvider = findFirstConfiguredProvider();
-        if (alternativeProvider) {
+      if (alternativeProvider) {
+        console.log('Switching to alternative provider:', alternativeProvider.name);
+        setAiConfig(prev => {
           const updatedConfig = { 
-            ...aiConfig, 
+            ...prev, 
             provider: alternativeProvider.id,
             model: alternativeProvider.models[0],
-            apiKey: newKeys[alternativeProvider.id] || ''
+            apiKey: apiKeys[alternativeProvider.id] || ''
           };
-          setAiConfig(updatedConfig);
           localStorage.setItem(STORAGE_KEY_AI_CONFIG, JSON.stringify(updatedConfig));
-        } else {
-          const updatedConfig = { ...aiConfig, apiKey: '' };
-          setAiConfig(updatedConfig);
+          return updatedConfig;
+        });
+      } else {
+        // No alternative provider, just clear the API key
+        setAiConfig(prev => {
+          const updatedConfig = { ...prev, apiKey: '' };
           localStorage.setItem(STORAGE_KEY_AI_CONFIG, JSON.stringify(updatedConfig));
-        }
+          return updatedConfig;
+        });
       }
-    } catch (error) {
-      console.error("Failed to remove API key:", error);
     }
-  }, [apiKeys, apiKeyStatus, aiConfig, findFirstConfiguredProvider]);
+  }, [aiConfig, apiKeys, apiKeyStatus]);
 
   const getCurrentAIConfig = useCallback((): AIConfig => {
     return {
