@@ -8,6 +8,7 @@ import AnalysisReportRenderer from '../core/AnalysisReportRenderer';
 import SettingsModal from '../core/SettingsModal';
 import { analyzeCode } from '../../services/geminiService';
 import { useSettings } from '../../hooks/useSettings';
+import Footer from '../core/Footer';
 
 interface CodeReviewPageProps {
   onBack: () => void;
@@ -128,6 +129,7 @@ const CodeReviewPage: React.FC<CodeReviewPageProps> = ({ onBack }) => {
             <AnimatePresence>
                 {isSettingsOpen && <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />}
             </AnimatePresence>
+            <Footer />
         </>
     );
 };
