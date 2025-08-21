@@ -1,0 +1,5 @@
+{
+  "name": "Elite AI Code Reviewer",
+  "description": "A web application that uses the Gemini API to provide intelligent, in-depth code reviews. Users can paste their code to receive analysis on quality, performance, security, and best practices.",
+  "requestFramePermissions": []
+}
