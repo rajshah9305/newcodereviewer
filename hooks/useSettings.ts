@@ -1,10 +1,11 @@
 // hooks/useSettings.ts
 import { useState, useEffect, useCallback } from 'react';
-import { AI_PROVIDERS, AIConfig } from '../services/aiService';
+import { AI_PROVIDERS, AIConfig, aiService } from '../services/aiService';
 
 const STORAGE_KEY_PROMPT = 'ai_code_review_prompt';
 const STORAGE_KEY_AI_CONFIG = 'ai_code_review_config';
 const STORAGE_KEY_API_KEYS = 'ai_code_review_api_keys';
+const STORAGE_KEY_API_KEY_STATUS = 'ai_code_review_api_key_status';
 
 const DEFAULT_PROMPT = `As an expert code reviewer, analyze the provided code snippet. Provide a detailed, constructive critique focusing on quality, correctness, performance, security, and adherence to best practices. Identify potential bugs, suggest concrete improvements with code examples, and comment on its overall structure and readability.`;
 
@@ -18,10 +19,21 @@ interface APIKeys {
   [providerId: string]: string;
 }
 
+interface APIKeyStatus {
+  [providerId: string]: {
+    valid: boolean;
+    tested: boolean;
+    error?: string;
+    lastTested?: number;
+  };
+}
+
 export const useSettings = () => {
   const [prompt, setPrompt] = useState<string>(DEFAULT_PROMPT);
   const [aiConfig, setAiConfig] = useState<AIConfig>(DEFAULT_AI_CONFIG);
   const [apiKeys, setApiKeys] = useState<APIKeys>({});
+  const [apiKeyStatus, setApiKeyStatus] = useState<APIKeyStatus>({});
+  const [isValidatingKey, setIsValidatingKey] = useState<{[providerId: string]: boolean}>({});
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -44,6 +56,13 @@ export const useSettings = () => {
       if (storedKeys) {
         const parsedKeys = JSON.parse(storedKeys);
         setApiKeys(parsedKeys);
+      }
+
+      // Load API key status
+      const storedStatus = localStorage.getItem(STORAGE_KEY_API_KEY_STATUS);
+      if (storedStatus) {
+        const parsedStatus = JSON.parse(storedStatus);
+        setApiKeyStatus(parsedStatus);
       }
     } catch (error) {
       console.error("Failed to load settings from localStorage:", error);
@@ -99,36 +118,120 @@ export const useSettings = () => {
     }
   }, [aiConfig, apiKeys]);
 
-  const saveAPIKey = useCallback((providerId: string, apiKey: string) => {
-    const newKeys = { ...apiKeys, [providerId]: apiKey };
+  const validateAPIKey = useCallback(async (providerId: string, apiKey: string): Promise<{valid: boolean; error?: string}> => {
+    if (!apiKey.trim()) {
+      return { valid: false, error: 'API key is required' };
+    }
+
+    setIsValidatingKey(prev => ({ ...prev, [providerId]: true }));
+
+    try {
+      const provider = AI_PROVIDERS.find(p => p.id === providerId);
+      if (!provider) {
+        return { valid: false, error: 'Unknown provider' };
+      }
+
+      const testConfig: AIConfig = {
+        provider: providerId,
+        model: provider.models[0], // Use first available model for testing
+        apiKey: apiKey.trim()
+      };
+
+      const result = await aiService.testAPIKey(testConfig);
+      
+      // Update status
+      const newStatus = {
+        ...apiKeyStatus,
+        [providerId]: {
+          valid: result.valid,
+          tested: true,
+          error: result.error,
+          lastTested: Date.now()
+        }
+      };
+      
+      setApiKeyStatus(newStatus);
+      localStorage.setItem(STORAGE_KEY_API_KEY_STATUS, JSON.stringify(newStatus));
+      
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Validation failed';
+      const newStatus = {
+        ...apiKeyStatus,
+        [providerId]: {
+          valid: false,
+          tested: true,
+          error: errorMessage,
+          lastTested: Date.now()
+        }
+      };
+      
+      setApiKeyStatus(newStatus);
+      localStorage.setItem(STORAGE_KEY_API_KEY_STATUS, JSON.stringify(newStatus));
+      
+      return { valid: false, error: errorMessage };
+    } finally {
+      setIsValidatingKey(prev => ({ ...prev, [providerId]: false }));
+    }
+  }, [apiKeyStatus]);
+
+  const saveAPIKey = useCallback(async (providerId: string, apiKey: string): Promise<{success: boolean; error?: string}> => {
+    const trimmedKey = apiKey.trim();
+    
+    if (!trimmedKey) {
+      return { success: false, error: 'API key cannot be empty' };
+    }
+
+    // Validate the API key first
+    const validation = await validateAPIKey(providerId, trimmedKey);
+    
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
+    }
+
+    // Save the API key if validation passed
+    const newKeys = { ...apiKeys, [providerId]: trimmedKey };
     try {
       localStorage.setItem(STORAGE_KEY_API_KEYS, JSON.stringify(newKeys));
       setApiKeys(newKeys);
       
       // If this is the current provider, update the config immediately
       if (providerId === aiConfig.provider) {
-        setAiConfig(prev => ({ ...prev, apiKey }));
+        const updatedConfig = { ...aiConfig, apiKey: trimmedKey };
+        setAiConfig(updatedConfig);
+        localStorage.setItem(STORAGE_KEY_AI_CONFIG, JSON.stringify(updatedConfig));
       }
+      
+      return { success: true };
     } catch (error) {
       console.error("Failed to save API key:", error);
+      return { success: false, error: 'Failed to save API key' };
     }
-  }, [apiKeys, aiConfig.provider]);
+  }, [apiKeys, aiConfig, validateAPIKey]);
 
   const removeAPIKey = useCallback((providerId: string) => {
     const newKeys = { ...apiKeys };
     delete newKeys[providerId];
+    
+    const newStatus = { ...apiKeyStatus };
+    delete newStatus[providerId];
+    
     try {
       localStorage.setItem(STORAGE_KEY_API_KEYS, JSON.stringify(newKeys));
+      localStorage.setItem(STORAGE_KEY_API_KEY_STATUS, JSON.stringify(newStatus));
       setApiKeys(newKeys);
+      setApiKeyStatus(newStatus);
       
       // If this is the current provider, clear the API key in config
       if (providerId === aiConfig.provider) {
-        setAiConfig(prev => ({ ...prev, apiKey: '' }));
+        const updatedConfig = { ...aiConfig, apiKey: '' };
+        setAiConfig(updatedConfig);
+        localStorage.setItem(STORAGE_KEY_AI_CONFIG, JSON.stringify(updatedConfig));
       }
     } catch (error) {
       console.error("Failed to remove API key:", error);
     }
-  }, [apiKeys, aiConfig.provider]);
+  }, [apiKeys, apiKeyStatus, aiConfig]);
 
   const getCurrentAIConfig = useCallback((): AIConfig => {
     return {
@@ -144,8 +247,13 @@ export const useSettings = () => {
 
   const isConfigured = useCallback(() => {
     const currentApiKey = apiKeys[aiConfig.provider];
-    return !!(aiConfig.provider && aiConfig.model && currentApiKey);
-  }, [aiConfig, apiKeys]);
+    const keyStatus = apiKeyStatus[aiConfig.provider];
+    return !!(aiConfig.provider && aiConfig.model && currentApiKey && keyStatus?.valid);
+  }, [aiConfig, apiKeys, apiKeyStatus]);
+
+  const getAPIKeyStatus = useCallback((providerId: string) => {
+    return apiKeyStatus[providerId] || { valid: false, tested: false };
+  }, [apiKeyStatus]);
 
   return {
     // Prompt settings
@@ -164,6 +272,9 @@ export const useSettings = () => {
     apiKeys,
     saveAPIKey,
     removeAPIKey,
+    validateAPIKey,
+    isValidatingKey,
+    getAPIKeyStatus,
     
     // Utility
     isConfigured,
