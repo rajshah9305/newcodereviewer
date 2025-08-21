@@ -20,7 +20,7 @@ export const AI_PROVIDERS: AIProvider[] = [
     id: 'gemini',
     name: 'Google Gemini',
     requiresApiKey: true,
-    models: ['gemini-2.5-flash', 'gemini-1.5-pro', 'gemini-1.5-flash']
+    models: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-pro', 'gemini-1.5-flash']
   },
   {
     id: 'openai',
@@ -40,13 +40,13 @@ export const AI_PROVIDERS: AIProvider[] = [
     requiresApiKey: true,
     baseUrl: 'https://api.sambanova.ai/v1',
     models: [
-      'DeepSeek-R1-0528',
+      'DeepSeek-R1',
       'DeepSeek-R1-Distill-Llama-70B',
       'DeepSeek-V3-0324',
       'Llama-3.3-Swallow-70B-Instruct-v0.4',
-      'Llama-4-Maverick-17B-128E-Instruct',
-      'Meta-Llama-3.1-8B-Instruct',
-      'Meta-Llama-3.1-70B-Instruct'
+      'Qwen3-32B',
+      'Meta-Llama-3.3-70B-Instruct',
+      'Llama-4-Maverick-17B-128E-Instruct'
     ]
   },
   {
@@ -56,13 +56,11 @@ export const AI_PROVIDERS: AIProvider[] = [
     baseUrl: 'https://api.cerebras.ai/v1',
     models: [
       'gpt-oss-120b',
-      'Qwen3-235B(Instruct)',
-      'Llama-3.3-70B',
-      'Llama-4-Maverick',
-      'Llama-4-scout',
+      'llama-3.3-70b',
       'llama-4-maverick-17b-128e-instruct',
+      'llama-4-scout-17b-16e-instruct',
       'llama3.1-8b',
-      'llama3.1-70b'
+      'qwen-3-32b'
     ]
   },
   {
