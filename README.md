@@ -93,20 +93,7 @@ PORT=3000
 - **Security**: Potential vulnerabilities and security best practices
 - **Performance**: Optimization opportunities and efficiency improvements
 - **Best Practices**: Industry standards and coding conventions
-- **Bug Detection**: Potential errors and logical issues
-
-## 🌐 AI Studio Integration
-
-This application is connected to Google AI Studio for enhanced functionality:
-
-**AI Studio App**: [View in AI Studio](https://ai.studio/apps/drive/1iBT7lT3qfEf0rGJ1PGj5FFCCMzDlrrMm)
-
-The AI Studio integration provides:
-
-- Advanced model configurations
-- Custom prompt engineering
-- Enhanced analysis capabilities
-- Cloud-based processing
+- **Bug Detection**: Potential errors and logical issues.
 
 ## 🛠️ Development
 
