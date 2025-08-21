@@ -6,6 +6,7 @@ import HeroHighlight from '../core/HeroHighlight';
 import Highlight from '../ui/Highlight';
 import AnimatedText from '../core/AnimatedText';
 import TextGlitch from '../core/TextGlitch';
+import Footer from '../core/Footer';
 
 interface LandingPageProps {
   onLaunch: () => void;
@@ -77,12 +78,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
           </motion.div>
         </div>
       </HeroHighlight>
-      <footer className="bg-slate-900 text-center py-10">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 1 }}>
-          <TextGlitch text="ELITE.AI" hoverText="NEURAL.CODE" />
-        </motion.div>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 1.2 }} className="text-sm text-slate-500 mt-4">A Modern AI-Powered Application</motion.p>
-      </footer>
+      <Footer />
     </motion.div>
   );
 };
