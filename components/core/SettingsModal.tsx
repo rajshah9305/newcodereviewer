@@ -1,7 +1,7 @@
-// components/core/SettingsModal.tsx
+// components/core/SettingsModal.tsx - Enhanced with better model selection feedback
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, Save, RotateCcw, Eye, EyeOff, Trash2, Key, Bot, Settings2, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { X, Save, RotateCcw, Eye, EyeOff, Trash2, Key, Bot, Settings2, CheckCircle, XCircle, AlertCircle, Loader2, ChevronDown } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
 import Button from '../ui/Button';
 
@@ -17,6 +17,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         resetPrompt, 
         aiConfig, 
         updateAIConfig, 
+        getCurrentProvider,
         getAvailableModels,
         apiKeys, 
         saveAPIKey, 
@@ -38,7 +39,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     useEffect(() => {
         if (isOpen) {
             setLocalPrompt(prompt);
-            // Initialize newApiKeys with current values
             const initialKeys: {[key: string]: string} = {};
             providers.forEach(provider => {
                 initialKeys[provider.id] = apiKeys[provider.id] || '';
@@ -60,14 +60,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     };
 
     const handleProviderChange = (providerId: string) => {
+        console.log('Switching to provider:', providerId);
         updateAIConfig({ provider: providerId });
     };
 
     const handleModelChange = (model: string) => {
+        console.log('Switching to model:', model);
         updateAIConfig({ model });
     };
 
-    // ENHANCED FUNCTION WITH AUTO-SWITCH FEEDBACK
     const handleSaveApiKey = async (providerId: string) => {
         const apiKey = newApiKeys[providerId]?.trim();
         if (!apiKey) {
@@ -78,7 +79,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             return;
         }
 
-        // Clear previous messages
         setSaveMessages(prev => ({ ...prev, [providerId]: undefined }));
 
         try {
@@ -94,7 +94,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     }
                 }));
                 
-                // Clear the message after 3 seconds
                 setTimeout(() => {
                     setSaveMessages(prev => ({ ...prev, [providerId]: undefined }));
                 }, 3000);
@@ -173,7 +172,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             : <XCircle className="w-4 h-4 text-red-500" />;
     };
 
-    const currentProvider = providers.find(p => p.id === aiConfig.provider);
+    const currentProvider = getCurrentProvider();
     const availableModels = getAvailableModels();
 
     return (
@@ -289,27 +288,33 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                                 </div>
                             </div>
 
-                            {/* Model Selection */}
+                            {/* ENHANCED Model Selection - Shows only current provider's models */}
                             {currentProvider && (
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Model
+                                        Model for {currentProvider.name}
                                     </label>
-                                    <select
-                                        value={aiConfig.model}
-                                        onChange={(e) => handleModelChange(e.target.value)}
-                                        className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                                    >
-                                        {availableModels.map((model) => (
-                                            <option key={model} value={model}>
-                                                {model}
-                            </option>
-                                        ))}
-                                    </select>
+                                    <div className="relative">
+                                        <select
+                                            value={aiConfig.model}
+                                            onChange={(e) => handleModelChange(e.target.value)}
+                                            className="w-full p-3 pr-10 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 appearance-none bg-white"
+                                        >
+                                            {availableModels.map((model) => (
+                                                <option key={model} value={model}>
+                                                    {model}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        {availableModels.length} model{availableModels.length !== 1 ? 's' : ''} available for {currentProvider.name}
+                                    </p>
                                 </div>
                             )}
 
-                            {/* API Keys Management */}
+                            {/* API Keys Management - Rest of the component remains the same */}
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-3">
                                     API Keys Management
