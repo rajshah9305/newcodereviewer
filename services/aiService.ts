@@ -68,7 +68,7 @@ export const AI_PROVIDERS: AIProvider[] = [
     name: 'OpenRouter',
     requiresApiKey: true,
     baseUrl: 'https://openrouter.ai/api/v1',
-    models: ['openai/gpt-4o', 'anthropic/claude-3.5-sonnet', 'meta-llama/llama-3.1-70b-instruct']
+    models: ['deepseek/deepseek-v3-0324', 'deepseek/deepseek-r1-0528', 'qwen/qwen3-coder', 'deepseek/deepseek-r1', 'z-ai/glm-4-5-air', 'tng/deepseek-r1t2-chimera', 'moonshotai/kimi-k2', 'tng/deepseek-r1t-chimera', 'qwen/qwen3-235b-a22b', 'google/gemini-2.0-flash-experimental', 'meta-llama/llama-3.3-70b-instruct', 'microsoft/mai-ds-r1', 'openai/gpt-oss-20b', 'deepseek/deepseek-r1-0528-qwen3-8b', 'qwen/qwen3-14b', 'mistral/mistral-small-3.2-24b', 'google/gemma-3-27b', 'qwen/qwen2-5-vl-72b-instruct', 'mistral/mistral-nemo', 'mistral/mistral-small-3.1-24b', 'venice/uncensored', 'qwen/qwen2-5-coder-32b-instruct', 'deepseek/r1-distill-llama-70b']
   }
 ];
 
@@ -358,5 +358,3 @@ class AIService {
     }
   }
 }
-
-export const aiService = new AIService();
