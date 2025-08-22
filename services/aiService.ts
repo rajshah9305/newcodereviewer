@@ -358,3 +358,7 @@ class AIService {
     }
   }
 }
+
+// CRITICAL: Export the service instance
+export const aiService = new AIService();
+export default aiService;
