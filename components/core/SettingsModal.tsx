@@ -1,4 +1,4 @@
-// components/core/SettingsModal.tsx - Enhanced with better model selection feedback
+// components/core/SettingsModal.tsx - Enhanced with Dynamic Model Selection
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Save, RotateCcw, Eye, EyeOff, Trash2, Key, Bot, Settings2, CheckCircle, XCircle, AlertCircle, Loader2, ChevronDown } from 'lucide-react';
@@ -18,7 +18,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         aiConfig, 
         updateAIConfig, 
         getCurrentProvider,
+        getProviderById,
         getAvailableModels,
+        getModelsForProvider,
         apiKeys, 
         saveAPIKey, 
         removeAPIKey,
@@ -85,7 +87,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             const result = await saveAPIKey(providerId, apiKey);
             
             if (result.success) {
-                const provider = providers.find(p => p.id === providerId);
+                const provider = getProviderById(providerId);
                 setSaveMessages(prev => ({
                     ...prev,
                     [providerId]: { 
@@ -254,12 +256,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                             {/* AI Provider Selection */}
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-3">
-                                    AI Provider
+                                    AI Provider Selection
                                 </label>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                     {providers.map((provider) => {
                                         const status = getAPIKeyStatus(provider.id);
                                         const hasValidKey = apiKeys[provider.id] && status.valid;
+                                        const modelCount = getModelsForProvider(provider.id).length;
                                         
                                         return (
                                             <div key={provider.id}>
@@ -279,193 +282,4 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                                                         </div>
                                                     </div>
                                                     <p className="text-xs text-slate-500">
-                                                        {provider.models.length} models available
-                                                    </p>
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* ENHANCED Model Selection - Shows only current provider's models */}
-                            {currentProvider && (
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Model for {currentProvider.name}
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            value={aiConfig.model}
-                                            onChange={(e) => handleModelChange(e.target.value)}
-                                            className="w-full p-3 pr-10 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 appearance-none bg-white"
-                                        >
-                                            {availableModels.map((model) => (
-                                                <option key={model} value={model}>
-                                                    {model}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                    </div>
-                                    <p className="text-xs text-slate-500 mt-1">
-                                        {availableModels.length} model{availableModels.length !== 1 ? 's' : ''} available for {currentProvider.name}
-                                    </p>
-                                </div>
-                            )}
-
-                            {/* API Keys Management - Rest of the component remains the same */}
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-3">
-                                    API Keys Management
-                                </label>
-                                <div className="space-y-4">
-                                    {providers.map((provider) => {
-                                        const status = getAPIKeyStatus(provider.id);
-                                        const isValidating = isValidatingKey[provider.id];
-                                        const saveMessage = saveMessages[provider.id];
-                                        
-                                        return (
-                                            <div key={provider.id} className="border border-slate-200 rounded-lg p-4">
-                                                <div className="flex items-center justify-between mb-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <h4 className="font-medium text-slate-900">{provider.name}</h4>
-                                                        {getStatusIcon(provider.id)}
-                                                    </div>
-                                                    {apiKeys[provider.id] && status.valid && (
-                                                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                                            Configured & Valid
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                
-                                                <div className="space-y-3">
-                                                    <div className="flex gap-2">
-                                                        <div className="flex-1 relative">
-                                                            <input
-                                                                type={showApiKeys[provider.id] ? 'text' : 'password'}
-                                                                value={newApiKeys[provider.id] || ''}
-                                                                onChange={(e) => setNewApiKeys(prev => ({ 
-                                                                    ...prev, 
-                                                                    [provider.id]: e.target.value 
-                                                                }))}
-                                                                placeholder={`Enter ${provider.name} API key...`}
-                                                                className="w-full p-2 pr-10 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => toggleShowApiKey(provider.id)}
-                                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                                                            >
-                                                                {showApiKeys[provider.id] ? (
-                                                                    <EyeOff className="w-4 h-4" />
-                                                                ) : (
-                                                                    <Eye className="w-4 h-4" />
-                                                                )}
-                                                            </button>
-                                                        </div>
-                                                        
-                                                        <Button
-                                                            onClick={() => handleTestApiKey(provider.id)}
-                                                            disabled={!newApiKeys[provider.id]?.trim() || isValidating}
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="px-3"
-                                                        >
-                                                            {isValidating ? (
-                                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                            ) : (
-                                                                <AlertCircle className="w-4 h-4 mr-1" />
-                                                            )}
-                                                            Test
-                                                        </Button>
-                                                        
-                                                        <Button
-                                                            onClick={() => handleSaveApiKey(provider.id)}
-                                                            disabled={!newApiKeys[provider.id]?.trim() || isValidating}
-                                                            size="sm"
-                                                            className="px-3"
-                                                        >
-                                                            {isValidating ? (
-                                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                            ) : (
-                                                                <Key className="w-4 h-4 mr-1" />
-                                                            )}
-                                                            Save
-                                                        </Button>
-                                                        
-                                                        {apiKeys[provider.id] && (
-                                                            <Button
-                                                                onClick={() => handleRemoveApiKey(provider.id)}
-                                                                variant="destructive"
-                                                                size="sm"
-                                                                className="px-3"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                    
-                                                    {/* Status Messages */}
-                                                    {saveMessage && (
-                                                        <div className={`text-xs p-2 rounded ${
-                                                            saveMessage.type === 'success' 
-                                                                ? 'bg-green-50 text-green-700 border border-green-200'
-                                                                : 'bg-red-50 text-red-700 border border-red-200'
-                                                        }`}>
-                                                            {saveMessage.message}
-                                                        </div>
-                                                    )}
-                                                    
-                                                    {status.tested && !saveMessage && (
-                                                        <div className={`text-xs p-2 rounded ${
-                                                            status.valid 
-                                                                ? 'bg-green-50 text-green-700 border border-green-200'
-                                                                : 'bg-red-50 text-red-700 border border-red-200'
-                                                        }`}>
-                                                            {status.valid ? 'API key is valid and working' : status.error || 'API key validation failed'}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'prompt' && (
-                        <div>
-                            <label htmlFor="system-prompt" className="block text-sm font-medium text-slate-700 mb-2">
-                                AI System Prompt
-                            </label>
-                            <p className="text-sm text-slate-500 mb-4">
-                                This prompt instructs the AI on how to analyze your code. You can customize it to focus on specific aspects of the review.
-                            </p>
-                            <textarea
-                                id="system-prompt"
-                                value={localPrompt}
-                                onChange={(e) => setLocalPrompt(e.target.value)}
-                                className="w-full h-48 bg-slate-50 text-slate-800 font-mono text-sm p-4 rounded-md resize-y border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:outline-none"
-                                placeholder="Enter the instructions for the AI code reviewer..."
-                            />
-                            <div className="flex items-center justify-end gap-3 mt-4">
-                                <Button variant="outline" onClick={handlePromptReset}>
-                                    <RotateCcw className="w-4 h-4 mr-2" />
-                                    Reset to Default
-                                </Button>
-                                <Button onClick={handlePromptSave} className="min-w-[100px]">
-                                    <Save className="w-4 h-4 mr-2" />
-                                    {isPromptSaved ? 'Saved!' : 'Save'}
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </motion.div>
-        </motion.div>
-    );
-};
-
-export default SettingsModal;
+                                                        {modelCount} model{modelCount !== 1 ? 's' : ''} availab
