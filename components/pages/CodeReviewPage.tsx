@@ -82,10 +82,12 @@ const CodeReviewPage: React.FC<CodeReviewPageProps> = ({ onBack }) => {
                                         onClick={openSettings} 
                                         aria-label="Open Settings"
                                         className={isConfigured() ? '' : 'ring-2 ring-amber-400 ring-offset-2'}
+                                        glow
+                                        glowColor="purple"
                                     >
                                         <Settings className={`w-5 h-5 ${isConfigured() ? 'text-slate-600' : 'text-amber-600'}`} />
                                     </Button>
-                                    <Button variant="outline" onClick={onBack} className="px-3">
+                                    <Button variant="outline" onClick={onBack} className="px-3" glow glowColor="blue">
                                         <ArrowLeft className="w-4 h-4 mr-0 sm:mr-2" />
                                         <span className="hidden sm:inline">Back to Home</span>
                                     </Button>
@@ -208,3 +210,5 @@ const CodeReviewPage: React.FC<CodeReviewPageProps> = ({ onBack }) => {
 };
 
 export default CodeReviewPage;
+
+
