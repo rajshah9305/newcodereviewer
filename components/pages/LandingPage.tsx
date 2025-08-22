@@ -44,7 +44,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
             <Button size="lg" onClick={onLaunch}>
               <Zap className="w-5 h-5 mr-2" /> Launch Neural Review
             </Button>
-            <Button as="a" href="https://github.com" target="_blank" rel="noopener noreferrer" variant="outline" size="lg">
+            <Button as="a" href="https://github.com/rajshah9305/newcodereviewer" target="_blank" rel="noopener noreferrer" variant="outline" size="lg">
               <Github className="w-5 h-5 mr-2" /> View on GitHub
             </Button>
           </motion.div>
