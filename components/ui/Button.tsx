@@ -1,19 +1,22 @@
 import React, { forwardRef, ElementType, ComponentPropsWithoutRef } from 'react';
 import { cn } from '../../lib/utils';
+import GlowCard from './GlowCard';
 
 // Our Button's specific props
 interface ButtonCustomProps {
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
   size?: 'default' | 'sm' | 'lg' | 'icon';
+  glow?: boolean; // Add glow prop
+  glowColor?: 'blue' | 'purple' | 'green' | 'red' | 'orange'; // Add glowColor prop
 }
 
 // Generic props for a polymorphic component
 // C: The element type to render (e.g., 'button', 'a', etc.)
 // P: The custom props for our component (ButtonCustomProps)
-type PolymorphicComponentProps<C extends ElementType, P = {}> = {
+type PolymorphicComponentProps<C extends ElementType, T = {}> = {
   as?: C; // The 'as' prop to define the rendered element
-} & P & // Our custom props
-  Omit<ComponentPropsWithoutRef<C>, keyof P | 'as'>; // Props of the rendered element, excluding clashes
+} & T & // Our custom props
+  Omit<ComponentPropsWithoutRef<C>, keyof T | 'as'>; // Props of the rendered element, excluding clashes
 
 // Define the final props for our Button component
 type ButtonProps<C extends ElementType> = PolymorphicComponentProps<C, ButtonCustomProps>;
@@ -27,7 +30,7 @@ type PolymorphicComponent = (<C extends ElementType = 'button'>(
 
 const Button = forwardRef(
   <C extends ElementType = 'button'>(
-    { as, variant = 'default', size = 'default', className, ...props }: ButtonProps<C>,
+    { as, variant = 'default', size = 'default', className, glow, glowColor, ...props }: ButtonProps<C>,
     ref: React.ComponentPropsWithRef<C>['ref']
   ) => {
     const Component = as || 'button';
@@ -38,7 +41,7 @@ const Button = forwardRef(
     const variants = {
       default: 'bg-sky-600 text-white hover:bg-sky-700 shadow-lg shadow-sky-600/20',
       destructive: 'bg-red-500 text-white hover:bg-red-600',
-      outline: 'border border-slate-300 bg-transparent hover:bg-slate-100 text-slate-800',
+      outline: 'border border-slate-300 bg-transparent hover:bg-transparent text-slate-800',
       secondary: 'bg-slate-100 text-slate-900 hover:bg-slate-200',
       ghost: 'hover:bg-slate-100',
       link: 'text-slate-900 underline-offset-4 hover:underline',
@@ -54,14 +57,26 @@ const Button = forwardRef(
     const variantClass = variants[variant!];
     const sizeClass = sizes[size!];
 
-    return (
+    const buttonContent = (
       <Component
         className={cn(baseClasses, variantClass, sizeClass, className)}
         ref={ref}
         {...props}
       />
     );
+
+    if (glow) {
+      return (
+        <GlowCard glowColor={glowColor} customSize={true} width="auto" >
+          {buttonContent}
+        </GlowCard>
+      );
+    }
+
+    return buttonContent;
   }
 ) as PolymorphicComponent;
 Button.displayName = 'Button';
 export default Button;
+
+
