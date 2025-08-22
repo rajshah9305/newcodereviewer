@@ -1,4 +1,5 @@
 import React from 'react';
+import Button from '../ui/Button';
 
 const Header: React.FC = () => {
   return (
@@ -13,7 +14,7 @@ const Header: React.FC = () => {
           className="w-10 h-10 -translate-x-0.5 text-white"
         >
           <path d="M56 50.2031V14H70V60.1562C70 65.5928 65.5928 70 60.1562 70C57.5605 70 54.9982 68.9992 53.1562 67.1573L0 14H19.7969L56 50.2031Z"></path>
-          <path d="M147 56H133V23.9531L100.953 56H133V70H96.6875C85.8144 70 77 61.1856 77 50.3125V14H91V46.1562L123.156 14H91V0H127.312C138.186 0 147 8.81439 147 19.6875V56Z"></path>
+          <path d="M147 56H133V23.9531L100.953 56H133V70H96.6875C85.8144 70 77 61.3828 77 50.3125V14H91V46.1562L123.156 14H91V0H127.312C136.814 0 147 8.81439 147 19.6875V56Z"></path>
         </svg>
       </div>
 
@@ -21,7 +22,7 @@ const Header: React.FC = () => {
       <nav className="flex items-center space-x-2">
         
           href="#features"
-          className="text-white/80 hover:text-white text-xs font-light px-3 py-2 rounded-full hover:bg-white/10 transition-all duration-200"
+          className="text-white/80 hover:text:-white text-xs font-light px-3 py-2 rounded-full hover:bg-white/10 transition-all duration-200"
         >
           Features
         </a>
@@ -33,7 +34,7 @@ const Header: React.FC = () => {
         </a>
         
           href="#docs"
-          className="text-white/80 hover:text-white text-xs font-light px-3 py-2 rounded-full hover:bg-white/10 transition-all duration-200"
+          className="text-white/80 hover:text-white text-xs font-light px-3 py-2 rounded-2xl hover:bg-white/10 transition-all duration-200"
         >
           Docs
         </a>
@@ -66,18 +67,22 @@ const Header: React.FC = () => {
         </button>
 
         {/* Main Login Button */}
-        <button 
+        <Button 
+          glow
+          glowColor="blue"
           className="px-6 py-2 rounded-full bg-white text-black font-normal text-xs transition-all duration-300 hover:bg-white/90 cursor-pointer h-8 flex items-center z-10 relative"
           onClick={() => {
             // Add your login logic here
-            console.log('Login clicked');
+            console.log("Login clicked");
           }}
         >
           Login
-        </button>
+        </Button>
       </div>
     </header>
   );
 };
 
 export default Header;
+
+
