@@ -61,7 +61,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
     const handleProviderChange = (providerId: string) => {
         console.log('Switching to provider:', providerId);
-        updateAIConfig({ provider: provider: providerId });
+        updateAIConfig({ provider: providerId });
     };
 
     const handleModelChange = (model: string) => {
@@ -133,7 +133,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 }));
             } else {
                 setSaveMessages(prev => ({
-                    ...prev, 
+                    ...prev,
                     [providerId]: { type: 'error', message: result.error || 'API key validation failed' }
                 }));
             }
@@ -194,7 +194,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-slate-200">
                     <h2 className="text-xl font-bold text-slate-800">Configuration Settings</h2>
-                    <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close settings" glow glowColor="purple">
+                    <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close settings">
                         <X className="w-5 h-5 text-slate-500" />
                     </Button>
                 </div>
@@ -220,7 +220,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                                 : 'text-slate-600 hover:text-slate-900'
                         }`}
                     >
-                        <Settings2 className="w-4 h_4" />
+                        <Settings2 className="w-4 h-4" />
                         System Prompt
                     </button>
                 </div>
@@ -232,7 +232,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                             {/* Current Configuration Status */}
                             <div className={`p-4 rounded-lg border-2 ${
                                 isConfigured() 
-                                    ? 'bg-green-50 border-green-200'
+                                    ? 'bg-green-50 border-green-200' 
                                     : 'bg-amber-50 border-amber-200'
                             }`}>
                                 <div className="flex items-center gap-2 mb-2">
@@ -246,7 +246,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                                 <p className="text-sm text-slate-600">
                                     {isConfigured() 
                                         ? `Ready to use ${currentProvider?.name} with ${aiConfig.model}`
-                                        : 'Please select an AI provider and configure a key to continue.'
+                                        : 'Please select an AI provider and configure a valid API key to continue.'
                                     }
                                 </p>
                             </div>
@@ -267,7 +267,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                                                     onClick={() => handleProviderChange(provider.id)}
                                                     className={`w-full p-4 border rounded-lg text-left transition-all ${
                                                         aiConfig.provider === provider.id
-                                                            ? 'border-sky-500 bg-sky-50' + ' ring-2 ring-sky-500/20'
+                                                            ? 'border-sky-500 bg-sky-50 ring-2 ring-sky-500/20'
                                                             : 'border-slate-200 hover:border-slate-300'
                                                     }`}
                                                 >
@@ -334,60 +334,99 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                                                     </div>
                                                     {apiKeys[provider.id] && status.valid && (
                                                         <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                                            Configured
+                                                            Configured & Valid
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <div className="relative flex-grow">
-                                                        <input
-                                                            type={showApiKeys[provider.id] ? 'text' : 'password'}
-                                                            value={newApiKeys[provider.id]}
-                                                            onChange={(e) => setNewApiKeys(prev => ({ ...prev, [provider.id]: e.target.value }))}
-                                                            placeholder={`Enter ${provider.name} API Key`}
-                                                            className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 pr-10"
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => toggleShowApiKey(provider.id)}
-                                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400"
-                                                        >
-                                                            {showApiKeys[provider.id] ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                                                        </button>
-                                                    </div>
-                                                    <Button
-                                                        onClick={() => handleSaveApiKey(provider.id)}
-                                                        disabled={isValidating || !newApiKeys[provider.id]}
-                                                        size="sm"
-                                                    >
-                                                        {isValidating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                        Save
-                                                    </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        onClick={() => handleTestApiKey(provider.id)}
-                                                        disabled={isValidating || !newApikeys[provider.id]}
-                                                        size="sm"
-                                                    >
-                                                        Test
-                                                    </Button>
-                                                    {apiKeys[provider.id] && (
+                                                
+                                                <div className="space-y-3">
+                                                    <div className="flex gap-2">
+                                                        <div className="flex-1 relative">
+                                                            <input
+                                                                type={showApiKeys[provider.id] ? 'text' : 'password'}
+                                                                value={newApiKeys[provider.id] || ''}
+                                                                onChange={(e) => setNewApiKeys(prev => ({ 
+                                                                    ...prev, 
+                                                                    [provider.id]: e.target.value 
+                                                                }))}
+                                                                placeholder={`Enter ${provider.name} API key...`}
+                                                                className="w-full p-2 pr-10 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleShowApiKey(provider.id)}
+                                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                                            >
+                                                                {showApiKeys[provider.id] ? (
+                                                                    <EyeOff className="w-4 h-4" />
+                                                                ) : (
+                                                                    <Eye className="w-4 h-4" />
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                        
                                                         <Button
-                                                            variant="destructive"
-                                                            onClick={() => handleRemoveApiKey(provider.id)}
+                                                            onClick={() => handleTestApiKey(provider.id)}
+                                                            disabled={!newApiKeys[provider.id]?.trim() || isValidating}
+                                                            variant="outline"
                                                             size="sm"
+                                                            className="px-3"
                                                         >
-                                                            <Trash2 className="h-4 w-4" />
+                                                            {isValidating ? (
+                                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                            ) : (
+                                                                <AlertCircle className="w-4 h-4 mr-1" />
+                                                            )}
+                                                            Test
                                                         </Button>
+                                                        
+                                                        <Button
+                                                            onClick={() => handleSaveApiKey(provider.id)}
+                                                            disabled={!newApiKeys[provider.id]?.trim() || isValidating}
+                                                            size="sm"
+                                                            className="px-3"
+                                                        >
+                                                            {isValidating ? (
+                                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                            ) : (
+                                                                <Key className="w-4 h-4 mr-1" />
+                                                            )}
+                                                            Save
+                                                        </Button>
+                                                        
+                                                        {apiKeys[provider.id] && (
+                                                            <Button
+                                                                onClick={() => handleRemoveApiKey(provider.id)}
+                                                                variant="destructive"
+                                                                size="sm"
+                                                                className="px-3"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    {/* Status Messages */}
+                                                    {saveMessage && (
+                                                        <div className={`text-xs p-2 rounded ${
+                                                            saveMessage.type === 'success' 
+                                                                ? 'bg-green-50 text-green-700 border border-green-200'
+                                                                : 'bg-red-50 text-red-700 border border-red-200'
+                                                        }`}>
+                                                            {saveMessage.message}
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {status.tested && !saveMessage && (
+                                                        <div className={`text-xs p-2 rounded ${
+                                                            status.valid 
+                                                                ? 'bg-green-50 text-green-700 border border-green-200'
+                                                                : 'bg-red-50 text-red-700 border border-red-200'
+                                                        }`}>
+                                                            {status.valid ? 'API key is valid and working' : status.error || 'API key validation failed'}
+                                                        </div>
                                                     )}
                                                 </div>
-                                                {saveMessage && (
-                                                    <p className={`mt-2 text-sm ${
-                                                        saveMessage.type === 'success' ? 'text-green-600' : 'text-red-600'
-                                                    }`}>
-                                                        {saveMessage.message}
-                                                    </p>
-                                                )}
                                             </div>
                                         );
                                     })}
@@ -397,34 +436,28 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     )}
 
                     {activeTab === 'prompt' && (
-                        <div className="space-y-4">
-                            <div>
-                                <label htmlFor="system-prompt" className="block text-sm font-medium text-gray-700 mb-2">
-                                    System Prompt
-                                </label>
-                                <textarea
-                                    id="system-prompt"
-                                    rows={10}
-                                    className="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm"
-                                    value={localPrompt}
-                                    onChange={(e) => setLocalPrompt(e.target.value)}
-                                ></textarea>
-                            </div>
-                            <div className="flex justify-end space-x-3">
-                                <Button
-                                    variant="outline"
-                                    onClick={handlePromptReset}
-                                    disabled={localPrompt === prompt}
-                                >
-                                    <RotateCcw className="mr-2 h-4 w-4" />
-                                    Reset
+                        <div>
+                            <label htmlFor="system-prompt" className="block text-sm font-medium text-slate-700 mb-2">
+                                AI System Prompt
+                            </label>
+                            <p className="text-sm text-slate-500 mb-4">
+                                This prompt instructs the AI on how to analyze your code. You can customize it to focus on specific aspects of the review.
+                            </p>
+                            <textarea
+                                id="system-prompt"
+                                value={localPrompt}
+                                onChange={(e) => setLocalPrompt(e.target.value)}
+                                className="w-full h-48 bg-slate-50 text-slate-800 font-mono text-sm p-4 rounded-md resize-y border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                                placeholder="Enter the instructions for the AI code reviewer..."
+                            />
+                            <div className="flex items-center justify-end gap-3 mt-4">
+                                <Button variant="outline" onClick={handlePromptReset}>
+                                    <RotateCcw className="w-4 h-4 mr-2" />
+                                    Reset to Default
                                 </Button>
-                                <Button
-                                    onClick={handlePromptSave}
-                                    disabled={localPrompt === prompt}
-                                >
-                                    <Save className="mr-2 h-4 w-4" />
-                                    {isPromptSaved ? 'Saved!' : 'Save Prompt'}
+                                <Button onClick={handlePromptSave} className="min-w-[100px]">
+                                    <Save className="w-4 h-4 mr-2" />
+                                    {isPromptSaved ? 'Saved!' : 'Save'}
                                 </Button>
                             </div>
                         </div>
@@ -436,5 +469,3 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 };
 
 export default SettingsModal;
-
-
