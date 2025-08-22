@@ -1,4 +1,4 @@
-// hooks/useSettings.ts - Enhanced Provider-Model Management
+// hooks/useSettings.ts - Enhanced Provider-Model Management with Real-time Updates
 import { useState, useEffect, useCallback } from 'react';
 import { aiService, AI_PROVIDERS, AIConfig } from '../services/aiService';
 
@@ -92,7 +92,7 @@ export const useSettings = () => {
     }
   }, []);
 
-  // ENHANCED: Provider switching with automatic model selection
+  // ENHANCED: Provider switching with automatic model selection and validation
   const updateAIConfig = useCallback((updates: Partial<AIConfig>) => {
     setAiConfig(prev => {
       const newConfig = { ...prev, ...updates };
@@ -103,14 +103,20 @@ export const useSettings = () => {
         if (provider && provider.models.length > 0) {
           newConfig.model = provider.models[0]; // Auto-select first model
           console.log(`Provider changed to ${provider.name}, auto-selected model: ${provider.models[0]}`);
+        } else {
+          console.warn(`Provider ${updates.provider} has no available models`);
         }
       }
 
       // Validate that the current model exists for the current provider
       const currentProvider = AI_PROVIDERS.find(p => p.id === newConfig.provider);
-      if (currentProvider && !currentProvider.models.includes(newConfig.model)) {
-        newConfig.model = currentProvider.models[0]; // Fallback to first model
-        console.log(`Model ${newConfig.model} not available for ${currentProvider.name}, switched to: ${currentProvider.models[0]}`);
+      if (currentProvider) {
+        if (!currentProvider.models.includes(newConfig.model)) {
+          newConfig.model = currentProvider.models[0]; // Fallback to first model
+          console.log(`Model ${newConfig.model} not available for ${currentProvider.name}, switched to: ${currentProvider.models[0]}`);
+        }
+      } else {
+        console.warn(`Unknown provider: ${newConfig.provider}`);
       }
 
       // Set API key from stored keys
@@ -126,18 +132,33 @@ export const useSettings = () => {
     });
   }, [apiKeys]);
 
-  // ENHANCED: Get available models for current provider only
+  // ENHANCED: Get available models for current provider only with validation
   const getAvailableModels = useCallback(() => {
     const provider = AI_PROVIDERS.find(p => p.id === aiConfig.provider);
-    const models = provider?.models || [];
-    console.log(`Available models for ${provider?.name || 'unknown provider'}:`, models);
+    if (!provider) {
+      console.warn(`Provider ${aiConfig.provider} not found`);
+      return [];
+    }
+    const models = provider.models || [];
+    console.log(`Available models for ${provider.name}:`, models);
     return models;
   }, [aiConfig.provider]);
+
+  // ENHANCED: Get models for ANY provider (useful for settings display)
+  const getModelsForProvider = useCallback((providerId: string) => {
+    const provider = AI_PROVIDERS.find(p => p.id === providerId);
+    return provider?.models || [];
+  }, []);
 
   // Get provider info
   const getCurrentProvider = useCallback(() => {
     return AI_PROVIDERS.find(p => p.id === aiConfig.provider);
   }, [aiConfig.provider]);
+
+  // ENHANCED: Get provider by ID
+  const getProviderById = useCallback((providerId: string) => {
+    return AI_PROVIDERS.find(p => p.id === providerId);
+  }, []);
 
   const validateAPIKey = useCallback(async (providerId: string, apiKey: string): Promise<{valid: boolean; error?: string}> => {
     if (!apiKey.trim()) {
@@ -150,6 +171,10 @@ export const useSettings = () => {
       const provider = AI_PROVIDERS.find(p => p.id === providerId);
       if (!provider) {
         return { valid: false, error: 'Unknown provider' };
+      }
+
+      if (provider.models.length === 0) {
+        return { valid: false, error: 'Provider has no available models' };
       }
 
       const testConfig: AIConfig = {
@@ -232,7 +257,7 @@ export const useSettings = () => {
       
       // Auto-switch to the newly configured provider
       const provider = AI_PROVIDERS.find(p => p.id === providerId);
-      if (provider) {
+      if (provider && provider.models.length > 0) {
         console.log('Auto-switching to newly configured provider:', provider.name);
         updateAIConfig({ 
           provider: providerId,
@@ -267,7 +292,7 @@ export const useSettings = () => {
       const alternativeProvider = AI_PROVIDERS.find(p => {
         const hasKey = apiKeys[p.id] && p.id !== providerId;
         const keyStatus = apiKeyStatus[p.id];
-        return hasKey && keyStatus?.valid;
+        return hasKey && keyStatus?.valid && p.models.length > 0;
       });
       
       if (alternativeProvider) {
@@ -290,7 +315,8 @@ export const useSettings = () => {
   const isConfigured = useCallback(() => {
     const currentApiKey = apiKeys[aiConfig.provider];
     const keyStatus = apiKeyStatus[aiConfig.provider];
-    return !!(aiConfig.provider && aiConfig.model && currentApiKey && keyStatus?.valid);
+    const provider = AI_PROVIDERS.find(p => p.id === aiConfig.provider);
+    return !!(aiConfig.provider && aiConfig.model && currentApiKey && keyStatus?.valid && provider?.models.includes(aiConfig.model));
   }, [aiConfig, apiKeys, apiKeyStatus]);
 
   const getAPIKeyStatus = useCallback((providerId: string) => {
@@ -309,7 +335,9 @@ export const useSettings = () => {
     updateAIConfig,
     getCurrentAIConfig,
     getCurrentProvider,
-    getAvailableModels, // This returns only models for the current provider
+    getProviderById,
+    getAvailableModels, // Returns only models for the current provider
+    getModelsForProvider, // Returns models for any specific provider
     
     // API key management
     apiKeys,
