@@ -7,7 +7,7 @@ import HeroHighlight from '../core/HeroHighlight';
 import TextGlitch from '../core/TextGlitch';
 import AnalysisReportRenderer from '../core/AnalysisReportRenderer';
 import SettingsModal from '../core/SettingsModal';
-import aiService from '../../services/aiService';
+import { aiService } from '../../services/aiService'; // Fixed import
 import { useSettings } from '../../hooks/useSettings';
 import Footer from '../core/Footer';
 
