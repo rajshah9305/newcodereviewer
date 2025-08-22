@@ -1,6 +1,6 @@
 // hooks/useSettings.ts - Enhanced Provider-Model Management
 import { useState, useEffect, useCallback } from 'react';
-import { AI_PROVIDERS, AIConfig, aiService } from '../services/aiService';
+import aiService, { AI_PROVIDERS, AIConfig } from '../services/aiService';
 
 const STORAGE_KEY_PROMPT = 'ai_code_review_prompt';
 const STORAGE_KEY_AI_CONFIG = 'ai_code_review_config';
@@ -322,5 +322,3 @@ export const useSettings = () => {
     // Utility
     isConfigured,
     providers: AI_PROVIDERS
-  };
-};
