@@ -1,4 +1,4 @@
-// hooks/useSettings.ts - Complete Enhanced Version
+// hooks/useSettings.ts - Enhanced Provider-Model Management
 import { useState, useEffect, useCallback } from 'react';
 import { AI_PROVIDERS, AIConfig, aiService } from '../services/aiService';
 
@@ -34,58 +34,36 @@ export const useSettings = () => {
   const [apiKeys, setApiKeys] = useState<APIKeys>({});
   const [apiKeyStatus, setApiKeyStatus] = useState<APIKeyStatus>({});
   const [isValidatingKey, setIsValidatingKey] = useState<{[providerId: string]: boolean}>({});
-  const [isInitialized, setIsInitialized] = useState(false);
 
   // Load settings from localStorage on mount
   useEffect(() => {
     try {
-      // Load prompt
       const storedPrompt = localStorage.getItem(STORAGE_KEY_PROMPT);
       if (storedPrompt && storedPrompt.trim() !== '') {
         setPrompt(storedPrompt);
       }
 
-      // Load AI config
       const storedConfig = localStorage.getItem(STORAGE_KEY_AI_CONFIG);
       if (storedConfig) {
         const parsedConfig = JSON.parse(storedConfig);
         setAiConfig({ ...DEFAULT_AI_CONFIG, ...parsedConfig });
       }
 
-      // Load API keys
       const storedKeys = localStorage.getItem(STORAGE_KEY_API_KEYS);
       if (storedKeys) {
         const parsedKeys = JSON.parse(storedKeys);
         setApiKeys(parsedKeys);
       }
 
-      // Load API key status
       const storedStatus = localStorage.getItem(STORAGE_KEY_API_KEY_STATUS);
       if (storedStatus) {
         const parsedStatus = JSON.parse(storedStatus);
         setApiKeyStatus(parsedStatus);
       }
-
-      setIsInitialized(true);
     } catch (error) {
       console.error("Failed to load settings from localStorage:", error);
-      setIsInitialized(true);
     }
   }, []);
-
-  // Auto-switch to first configured provider on startup
-  useEffect(() => {
-    if (!isInitialized) return;
-    
-    const configuredProvider = findFirstConfiguredProvider();
-    if (configuredProvider && aiConfig.provider !== configuredProvider.id) {
-      console.log('Auto-switching to configured provider:', configuredProvider.name);
-      updateAIConfig({ 
-        provider: configuredProvider.id,
-        model: configuredProvider.models[0]
-      });
-    }
-  }, [isInitialized, apiKeys, apiKeyStatus]);
 
   // Update aiConfig with current API key whenever provider changes
   useEffect(() => {
@@ -94,14 +72,6 @@ export const useSettings = () => {
       apiKey: apiKeys[prev.provider] || ''
     }));
   }, [apiKeys, aiConfig.provider]);
-
-  const findFirstConfiguredProvider = useCallback(() => {
-    return AI_PROVIDERS.find(provider => {
-      const hasKey = apiKeys[provider.id];
-      const keyStatus = apiKeyStatus[provider.id];
-      return hasKey && keyStatus?.valid;
-    });
-  }, [apiKeys, apiKeyStatus]);
 
   const savePrompt = useCallback((newPrompt: string) => {
     const promptToSave = newPrompt.trim() === '' ? DEFAULT_PROMPT : newPrompt;
@@ -122,16 +92,25 @@ export const useSettings = () => {
     }
   }, []);
 
+  // ENHANCED: Provider switching with automatic model selection
   const updateAIConfig = useCallback((updates: Partial<AIConfig>) => {
     setAiConfig(prev => {
       const newConfig = { ...prev, ...updates };
       
-      // If provider changed, update the model to the first available model for that provider
+      // If provider changed, automatically set the first available model for that provider
       if (updates.provider && updates.provider !== prev.provider) {
         const provider = AI_PROVIDERS.find(p => p.id === updates.provider);
         if (provider && provider.models.length > 0) {
-          newConfig.model = provider.models[0];
+          newConfig.model = provider.models[0]; // Auto-select first model
+          console.log(`Provider changed to ${provider.name}, auto-selected model: ${provider.models[0]}`);
         }
+      }
+
+      // Validate that the current model exists for the current provider
+      const currentProvider = AI_PROVIDERS.find(p => p.id === newConfig.provider);
+      if (currentProvider && !currentProvider.models.includes(newConfig.model)) {
+        newConfig.model = currentProvider.models[0]; // Fallback to first model
+        console.log(`Model ${newConfig.model} not available for ${currentProvider.name}, switched to: ${currentProvider.models[0]}`);
       }
 
       // Set API key from stored keys
@@ -146,6 +125,19 @@ export const useSettings = () => {
       return newConfig;
     });
   }, [apiKeys]);
+
+  // ENHANCED: Get available models for current provider only
+  const getAvailableModels = useCallback(() => {
+    const provider = AI_PROVIDERS.find(p => p.id === aiConfig.provider);
+    const models = provider?.models || [];
+    console.log(`Available models for ${provider?.name || 'unknown provider'}:`, models);
+    return models;
+  }, [aiConfig.provider]);
+
+  // Get provider info
+  const getCurrentProvider = useCallback(() => {
+    return AI_PROVIDERS.find(p => p.id === aiConfig.provider);
+  }, [aiConfig.provider]);
 
   const validateAPIKey = useCallback(async (providerId: string, apiKey: string): Promise<{valid: boolean; error?: string}> => {
     if (!apiKey.trim()) {
@@ -168,7 +160,6 @@ export const useSettings = () => {
 
       const result = await aiService.testAPIKey(testConfig);
       
-      // Update status immediately
       setApiKeyStatus(prev => {
         const newStatus = {
           ...prev,
@@ -193,7 +184,6 @@ export const useSettings = () => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Validation failed';
       
-      // Update status with error
       setApiKeyStatus(prev => {
         const newStatus = {
           ...prev,
@@ -227,37 +217,26 @@ export const useSettings = () => {
       return { success: false, error: 'API key cannot be empty' };
     }
 
-    // Validate the API key first
     const validation = await validateAPIKey(providerId, trimmedKey);
     
     if (!validation.valid) {
       return { success: false, error: validation.error };
     }
 
-    // Save the API key if validation passed
     try {
-      // Update API keys state
       setApiKeys(prev => {
         const newKeys = { ...prev, [providerId]: trimmedKey };
         localStorage.setItem(STORAGE_KEY_API_KEYS, JSON.stringify(newKeys));
         return newKeys;
       });
       
-      // IMMEDIATE AUTO-SWITCH: Switch to the newly configured provider
+      // Auto-switch to the newly configured provider
       const provider = AI_PROVIDERS.find(p => p.id === providerId);
       if (provider) {
-        console.log('Auto-switching to provider:', provider.name);
-        
-        // Update AI config immediately
-        setAiConfig(prev => {
-          const updatedConfig: AIConfig = {
-            provider: providerId,
-            model: provider.models[0], // Auto-select first available model
-            apiKey: trimmedKey
-          };
-          
-          localStorage.setItem(STORAGE_KEY_AI_CONFIG, JSON.stringify(updatedConfig));
-          return updatedConfig;
+        console.log('Auto-switching to newly configured provider:', provider.name);
+        updateAIConfig({ 
+          provider: providerId,
+          model: provider.models[0] // Auto-select first available model
         });
       }
       
@@ -266,10 +245,9 @@ export const useSettings = () => {
       console.error("Failed to save API key:", error);
       return { success: false, error: 'Failed to save API key' };
     }
-  }, [validateAPIKey]);
+  }, [validateAPIKey, updateAIConfig]);
 
   const removeAPIKey = useCallback((providerId: string) => {
-    // Update API keys
     setApiKeys(prev => {
       const newKeys = { ...prev };
       delete newKeys[providerId];
@@ -277,7 +255,6 @@ export const useSettings = () => {
       return newKeys;
     });
     
-    // Update API key status
     setApiKeyStatus(prev => {
       const newStatus = { ...prev };
       delete newStatus[providerId];
@@ -295,26 +272,13 @@ export const useSettings = () => {
       
       if (alternativeProvider) {
         console.log('Switching to alternative provider:', alternativeProvider.name);
-        setAiConfig(prev => {
-          const updatedConfig = { 
-            ...prev, 
-            provider: alternativeProvider.id,
-            model: alternativeProvider.models[0],
-            apiKey: apiKeys[alternativeProvider.id] || ''
-          };
-          localStorage.setItem(STORAGE_KEY_AI_CONFIG, JSON.stringify(updatedConfig));
-          return updatedConfig;
-        });
-      } else {
-        // No alternative provider, just clear the API key
-        setAiConfig(prev => {
-          const updatedConfig = { ...prev, apiKey: '' };
-          localStorage.setItem(STORAGE_KEY_AI_CONFIG, JSON.stringify(updatedConfig));
-          return updatedConfig;
+        updateAIConfig({ 
+          provider: alternativeProvider.id,
+          model: alternativeProvider.models[0]
         });
       }
     }
-  }, [aiConfig, apiKeys, apiKeyStatus]);
+  }, [aiConfig, apiKeys, apiKeyStatus, updateAIConfig]);
 
   const getCurrentAIConfig = useCallback((): AIConfig => {
     return {
@@ -322,11 +286,6 @@ export const useSettings = () => {
       apiKey: apiKeys[aiConfig.provider] || ''
     };
   }, [aiConfig, apiKeys]);
-
-  const getAvailableModels = useCallback(() => {
-    const provider = AI_PROVIDERS.find(p => p.id === aiConfig.provider);
-    return provider?.models || [];
-  }, [aiConfig.provider]);
 
   const isConfigured = useCallback(() => {
     const currentApiKey = apiKeys[aiConfig.provider];
@@ -349,7 +308,8 @@ export const useSettings = () => {
     aiConfig,
     updateAIConfig,
     getCurrentAIConfig,
-    getAvailableModels,
+    getCurrentProvider,
+    getAvailableModels, // This returns only models for the current provider
     
     // API key management
     apiKeys,
@@ -361,7 +321,6 @@ export const useSettings = () => {
     
     // Utility
     isConfigured,
-    providers: AI_PROVIDERS,
-    findFirstConfiguredProvider
+    providers: AI_PROVIDERS
   };
 };
