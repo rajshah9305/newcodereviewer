@@ -1,8 +1,8 @@
 // components/core/EnhancedSettingsModal.tsx - Styled to match your theme
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, Save, Shield, Key, AlertTriangle, CheckCircle, 
+import {
+  X, Save, Shield, Key, AlertTriangle, CheckCircle,
   Plus, Trash2, Eye, EyeOff, Download, Upload, Settings2,
   Loader2, Clock, Activity, RefreshCw
 } from 'lucide-react';
@@ -16,22 +16,22 @@ interface EnhancedSettingsModalProps {
 }
 
 const EnhancedSettingsModal: React.FC<EnhancedSettingsModalProps> = ({ isOpen, onClose }) => {
-  const { 
-    prompt, 
-    savePrompt, 
-    resetPrompt, 
-    aiConfig, 
-    updateAIConfig, 
+  const {
+    prompt,
+    savePrompt,
+    resetPrompt,
+    aiConfig,
+    updateAIConfig,
     getCurrentProvider,
     getAvailableModels,
-    apiKeys, 
-    saveAPIKey, 
+    apiKeys,
+    saveAPIKey,
     removeAPIKey,
     validateAPIKey,
     isValidatingKey,
     getAPIKeyStatus,
     isConfigured,
-    providers 
+    providers
   } = useSettings();
 
   const [activeTab, setActiveTab] = useState<'ai' | 'prompt' | 'security'>('ai');
@@ -122,8 +122,7 @@ const EnhancedSettingsModal: React.FC<EnhancedSettingsModalProps> = ({ isOpen, o
         }));
       }
     } catch (error) {
-      setSaveMessages(prev => ({
-        ...prev,
+      setSaveMessages(prev => ({ ...prev,
         [providerId]: { type: 'error', message: 'Failed to validate API key' }
       }));
     }
@@ -199,7 +198,7 @@ const EnhancedSettingsModal: React.FC<EnhancedSettingsModalProps> = ({ isOpen, o
           <div className="flex items-center gap-2">
             {isConfigured() && (
               <div className="flex items-center gap-2 px-3 py-1 bg-green-50 border border-green-200 rounded-full text-xs">
-                <CheckCircle className="w-3 h-3 text-green-600" />
+                <CheckCircle className="w-3 h-3 text-green-60" />
                 <span className="text-green-700 font-medium">Ready</span>
               </div>
             )}
@@ -393,79 +392,74 @@ const EnhancedSettingsModal: React.FC<EnhancedSettingsModalProps> = ({ isOpen, o
                         
                         <div className="space-y-3">
                           <div className="flex gap-2">
-                            <div className="flex-1 relative">
-                              <input
-                                type={showApiKeys[provider.id] ? 'text' : 'password'}
-                                value={newApiKeys[provider.id] || ''}
-                                onChange={(e) => setNewApiKeys(prev => ({ 
-                                  ...prev, 
-                                  [provider.id]: e.target.value 
-                                }))}
-                                placeholder={`Enter ${provider.name} API key...`}
-                                className="w-full p-3 pr-10 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowApiKeys(prev => ({ 
-                                  ...prev, 
-                                  [provider.id]: !prev[provider.id] 
-                                }))}
-                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                              >
-                                {showApiKeys[provider.id] ? (
-                                  <EyeOff className="w-4 h-4" />
-                                ) : (
-                                  <Eye className="w-4 h-4" />
-                                )}
-                              </button>
+                            <div className="flex-1">
+                              <label htmlFor={`api-key-${provider.id}`} className="block text-xs font-medium text-slate-700 mb-1">API Key</label>
+                              <div className="relative">
+                                <input
+                                  id={`api-key-${provider.id}`}
+                                  type={showApiKeys[provider.id] ? 'text' : 'password'}
+                                  value={newApiKeys[provider.id] || ''}
+                                  onChange={(e) => setNewApiKeys(prev => ({
+                                    ...prev,
+                                    [provider.id]: e.target.value
+                                  }))}
+                                  className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 text-sm"
+                                  placeholder="Enter API Key"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowApiKeys(prev => ({ ...prev, [provider.id]: !prev[provider.id] }))}
+                                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400"
+                                >
+                                  {showApiKeys[provider.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                              </div>
                             </div>
-                            
                             <Button
                               onClick={() => handleSaveApiKey(provider.id)}
-                              disabled={!newApiKeys[provider.id]?.trim() || isValidating}
-                              size="default"
-                              className="px-4"
+                              disabled={isValidating}
+                              className="self-end"
                             >
-                              {isValidating ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Save className="w-4 h-4 mr-2" />
-                              )}
+                              {isValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                               Save
                             </Button>
-                            
                             {hasKey && (
                               <Button
-                                onClick={() => removeAPIKey(provider.id)}
                                 variant="destructive"
-                                size="default"
-                                className="px-4"
+                                onClick={() => removeAPIKey(provider.id)}
+                                className="self-end"
                               >
                                 <Trash2 className="w-4 h-4" />
+                                Remove
                               </Button>
                             )}
                           </div>
-                          
-                          {/* Status Messages - Matches your existing styling */}
                           {saveMessage && (
                             <div className={cn(
-                              'text-sm p-3 rounded-lg border',
-                              saveMessage.type === 'success' 
-                                ? 'bg-green-50 text-green-700 border-green-200'
-                                : 'bg-red-50 text-red-700 border-red-200'
+                              'text-sm mt-2',
+                              saveMessage.type === 'success' ? 'text-green-600' : 'text-red-600'
                             )}>
                               {saveMessage.message}
                             </div>
                           )}
-                          
-                          {status.tested && !saveMessage && (
-                            <div className={cn(
-                              'text-sm p-3 rounded-lg border',
-                              status.valid 
-                                ? 'bg-green-50 text-green-700 border-green-200'
-                                : 'bg-red-50 text-red-700 border-red-200'
-                            )}>
-                              {status.valid ? 'API key is valid and working' : status.error || 'API key validation failed'}
+
+                          {/* Model Selection Dropdown */}
+                          {hasKey && status.valid && (
+                            <div className="mt-4">
+                              <label htmlFor={`model-select-${provider.id}`} className="block text-xs font-medium text-slate-700 mb-1">Select Model</label>
+                              <select
+                                id={`model-select-${provider.id}`}
+                                value={aiConfig.provider === provider.id ? aiConfig.model : ''}
+                                onChange={(e) => updateAIConfig({
+                                  provider: provider.id,
+                                  model: e.target.value
+                                })}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 text-sm"
+                              >
+                                {getAvailableModels().map(model => (
+                                  <option key={model} value={model}>{model}</option>
+                                ))}
+                              </select>
                             </div>
                           )}
                         </div>
@@ -478,28 +472,28 @@ const EnhancedSettingsModal: React.FC<EnhancedSettingsModalProps> = ({ isOpen, o
           )}
 
           {activeTab === 'prompt' && (
-            <div>
-              <label htmlFor="system-prompt" className="block text-sm font-medium text-slate-700 mb-2">
-                AI System Prompt
-              </label>
-              <p className="text-sm text-slate-500 mb-4">
-                This prompt instructs the AI on how to analyze your code. You can customize it to focus on specific aspects of the review.
-              </p>
-              <textarea
-                id="system-prompt"
-                value={localPrompt}
-                onChange={(e) => setLocalPrompt(e.target.value)}
-                className="w-full h-48 bg-slate-50 text-slate-800 font-mono text-sm p-4 rounded-lg resize-y border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:outline-none"
-                placeholder="Enter the instructions for the AI code reviewer..."
-              />
-              <div className="flex items-center justify-end gap-3 mt-4">
-                <Button variant="outline" onClick={() => { resetPrompt(); setLocalPrompt(prompt); }}>
-                  <RefreshCw className="w-4 h-4 mr-2" />
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="system-prompt" className="block text-sm font-medium text-slate-700 mb-1">System Prompt</label>
+                <textarea
+                  id="system-prompt"
+                  value={localPrompt}
+                  onChange={(e) => setLocalPrompt(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 text-sm min-h-[150px]"
+                  placeholder="Enter system prompt here..."
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={resetPrompt}>
                   Reset to Default
                 </Button>
-                <Button onClick={() => { savePrompt(localPrompt); setIsPromptSaved(true); setTimeout(() => setIsPromptSaved(false), 2000); }} className="min-w-[100px]">
-                  <Save className="w-4 h-4 mr-2" />
-                  {isPromptSaved ? 'Saved!' : 'Save'}
+                <Button onClick={() => {
+                  savePrompt(localPrompt);
+                  setIsPromptSaved(true);
+                  setTimeout(() => setIsPromptSaved(false), 3000);
+                }}>
+                  {isPromptSaved ? <CheckCircle className="w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                  {isPromptSaved ? 'Saved!' : 'Save Prompt'}
                 </Button>
               </div>
             </div>
@@ -507,32 +501,19 @@ const EnhancedSettingsModal: React.FC<EnhancedSettingsModalProps> = ({ isOpen, o
 
           {activeTab === 'security' && (
             <div className="space-y-6">
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                <h3 className="font-semibold text-slate-800 mb-3">Backup & Recovery</h3>
-                <p className="text-sm text-slate-600 mb-4">
-                  Export your configuration and API keys for backup or transfer to another device.
-                </p>
-                <div className="flex gap-3">
-                  <Button onClick={handleExportKeys}>
-                    <Download className="w-4 h-4 mr-2" />
-                    Export Configuration
-                  </Button>
-                  <Button variant="outline">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Import Configuration
-                  </Button>
-                </div>
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                <h3 className="text-lg font-medium text-blue-800 mb-2">Security & Backup</h3>
+                <p className="text-sm text-blue-700">This section will allow you to export and import your API keys and settings for backup and migration purposes.</p>
               </div>
-
-              <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
-                <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-amber-600" />
-                  Security Notice
-                </h3>
-                <p className="text-sm text-slate-700">
-                  API keys are stored locally in your browser. For enhanced security in production environments, 
-                  consider using environment variables or secure key management services.
-                </p>
+              <div className="flex items-center gap-2">
+                <Button onClick={handleExportKeys}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export All Settings
+                </Button>
+                <Button>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import Settings
+                </Button>
               </div>
             </div>
           )}
@@ -543,3 +524,5 @@ const EnhancedSettingsModal: React.FC<EnhancedSettingsModalProps> = ({ isOpen, o
 };
 
 export default EnhancedSettingsModal;
+
+
