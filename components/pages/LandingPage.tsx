@@ -7,6 +7,7 @@ import Highlight from '../ui/Highlight';
 import AnimatedText from '../core/AnimatedText';
 import TextGlitch from '../core/TextGlitch';
 import Footer from '../core/Footer';
+import ThreeBackground from '../core/ThreeBackground';
 
 interface LandingPageProps {
   onLaunch: () => void;
@@ -32,6 +33,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <ThreeBackground />
       <HeroHighlight containerClassName="min-h-screen">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-24 text-center">
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-6 tracking-tight text-slate-900">
@@ -80,3 +82,4 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
 };
 
 export default LandingPage;
+
